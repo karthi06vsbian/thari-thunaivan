@@ -41,11 +41,11 @@ export async function assertRole(roles: Role[]): Promise<AppUser> {
 type Area = "overview" | "machines" | "planning" | "productionLogs" | "electricity" | "orders" | "whatsapp";
 
 export const ACCESS: Record<Area, Role[]> = {
-  overview: ["owner", "manager", "production", "accounts"],
+  overview: ["owner", "manager", "production", "accounts", "transport"],
   machines: ["owner", "manager"],
   planning: ["owner", "manager"],
   productionLogs: ["owner", "manager", "production"],
   electricity: ["owner", "manager", "accounts"],
-  orders: ["owner", "manager", "accounts"],
+  orders: ["owner", "manager", "accounts", "transport"],
   whatsapp: ["owner"],
 };

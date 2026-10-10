@@ -1,6 +1,6 @@
 import type { IsoDate, Machine, PlanInputs } from "@/lib/planning/types";
 
-export type StaffRole = "owner" | "manager" | "production" | "accounts";
+export type StaffRole = "owner" | "manager" | "production" | "accounts" | "transport";
 /** Clients sign in with Google and only ever see their own orders in /portal. */
 export type Role = StaffRole | "client";
 

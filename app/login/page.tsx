@@ -6,7 +6,6 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   sendPasswordResetEmail,
-  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   updateProfile,
@@ -15,18 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ON_EMULATOR, useSignIn } from "@/lib/auth/use-sign-in";
+import { useSignIn } from "@/lib/auth/use-sign-in";
 import { clientAuth } from "@/lib/firebase/client";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
-
-// The Auth emulator accepts a made-up Google identity, which gives a one-click test client.
-const DEMO_CLIENT = JSON.stringify({
-  sub: "demo-client",
-  email: "client@textileflow.test",
-  email_verified: true,
-  name: "Demo Client",
-});
 
 function GoogleMark() {
   return (
@@ -39,18 +30,76 @@ function GoogleMark() {
   );
 }
 
+const ROLES = [
+  {
+    id: "owner",
+    label: "Owner",
+    icon: "👑",
+    title: "Mill Owner Login",
+    description: "Full oversight: 50 looms, electricity billing, planning & WhatsApp reports.",
+    demoEmail: "owner@tharithunaivan.com",
+    demoPassword: "password123",
+  },
+  {
+    id: "manager",
+    label: "Manager",
+    icon: "👔",
+    title: "Production Manager Login",
+    description: "Loom capacity allocation, order batching & floor scheduling.",
+    demoEmail: "manager@tharithunaivan.com",
+    demoPassword: "password123",
+  },
+  {
+    id: "staff",
+    label: "Staff",
+    icon: "🛠️",
+    title: "Floor Supervisor Login",
+    description: "Shift production logs, running/idle hours & meters woven.",
+    demoEmail: "staff@tharithunaivan.com",
+    demoPassword: "password123",
+  },
+  {
+    id: "transport",
+    label: "Transport",
+    icon: "🚚",
+    title: "Transport & Logistics Login",
+    description: "Orders ready for dispatch, delivery tracking & customer details.",
+    demoEmail: "transport@tharithunaivan.com",
+    demoPassword: "password123",
+  },
+  {
+    id: "customer",
+    label: "Customer",
+    icon: "🛒",
+    title: "Customer & Buyer Portal",
+    description: "Place custom fabric orders and track weaving progress.",
+    demoEmail: "client@tharithunaivan.com",
+    demoPassword: "password123",
+  },
+];
+
+type RoleId = "owner" | "manager" | "staff" | "transport" | "customer";
 type Mode = "login" | "register";
 
-export default function CustomerLoginPage() {
+export default function LoginPage() {
   const { busy, error, setError, finish } = useSignIn();
+  const [selectedRole, setSelectedRole] = useState<RoleId>("owner");
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("owner@tharithunaivan.com");
+  const [password, setPassword] = useState("password123");
   const [notice, setNotice] = useState("");
 
-  function switchMode(next: Mode) {
-    setMode(next);
+  const activeRole = ROLES.find((r) => r.id === selectedRole) ?? ROLES[0]!;
+
+  function pickRole(roleId: RoleId) {
+    setSelectedRole(roleId);
+    const r = ROLES.find((item) => item.id === roleId);
+    if (r) {
+      setEmail(r.demoEmail);
+      setPassword(r.demoPassword);
+    }
+    setMode("login");
     setError("");
     setNotice("");
   }
@@ -69,6 +118,12 @@ export default function CustomerLoginPage() {
     }, name);
   }
 
+  function oneClickLogin() {
+    setEmail(activeRole.demoEmail);
+    setPassword(activeRole.demoPassword);
+    void finish(() => signInWithEmailAndPassword(clientAuth(), activeRole.demoEmail, activeRole.demoPassword));
+  }
+
   async function forgotPassword() {
     setError("");
     setNotice("");
@@ -79,59 +134,134 @@ export default function CustomerLoginPage() {
     try {
       await sendPasswordResetEmail(clientAuth(), email);
     } catch {
-      // Same message either way, so this cannot be used to check who has an account.
+      // Ignored for security
     }
     setNotice("If that email has an account, a password reset link is on its way.");
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <div className="grid w-full max-w-sm gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">{SITE.name}</CardTitle>
-            <CardDescription>
-              {mode === "login"
-                ? "Log in to place an order and follow its progress."
-                : "Create a customer account to place orders with us."}
-            </CardDescription>
+      <div className="grid w-full max-w-md gap-4">
+        <Card className="shadow-md">
+          <CardHeader className="pb-3 text-center">
+            <CardTitle className="text-2xl font-bold tracking-tight">{SITE.name}</CardTitle>
+            <p className="text-xs text-muted-foreground font-medium">தறி துணைவன் · Weaving Mill Management System</p>
           </CardHeader>
+
           <CardContent className="grid gap-4">
-            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label="Customer account">
-              {(["login", "register"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === m}
-                  onClick={() => switchMode(m)}
-                  className={cn(
-                    "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground",
-                    mode === m && "bg-background text-foreground shadow-sm",
-                  )}
-                >
-                  {m === "login" ? "Log in" : "Register"}
-                </button>
-              ))}
+            {/* Role Switcher Tabs */}
+            <div className="grid gap-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Select Role to Sign In</Label>
+              <div className="grid grid-cols-5 gap-1 rounded-xl bg-muted p-1">
+                {ROLES.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => pickRole(r.id as RoleId)}
+                    className={cn(
+                      "flex flex-col items-center justify-center rounded-lg py-1.5 px-1 text-xs font-medium transition-all",
+                      selectedRole === r.id
+                        ? "bg-background text-foreground shadow-sm font-semibold"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <span className="text-base">{r.icon}</span>
+                    <span className="truncate text-[11px] leading-tight mt-0.5">{r.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <form onSubmit={onSubmit} className="grid gap-4">
+            {/* Active Role Description Banner */}
+            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-xs">
+              <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                <span>{activeRole.icon}</span>
+                <span>{activeRole.title}</span>
+              </div>
+              <p className="mt-1 text-muted-foreground leading-relaxed">{activeRole.description}</p>
+            </div>
+
+            {/* Quick 1-Click Login Button */}
+            <Button
+              type="button"
+              variant="default"
+              size="lg"
+              disabled={busy}
+              onClick={oneClickLogin}
+              className="w-full font-semibold shadow"
+            >
+              ⚡ 1-Click Sign In as {activeRole.label}
+            </Button>
+
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              <span>or sign in with credentials</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+
+            {/* Customer Register Toggle (Only shown for Customer role) */}
+            {selectedRole === "customer" && (
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist">
+                {(["login", "register"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      setMode(m);
+                      setError("");
+                      setNotice("");
+                    }}
+                    className={cn(
+                      "rounded-md px-3 py-1 text-xs font-medium",
+                      mode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+                    )}
+                  >
+                    {m === "login" ? "Sign In" : "Register New Account"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={onSubmit} className="grid gap-3">
               {mode === "register" && (
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Your name</Label>
-                  <Input id="name" name="name" required maxLength={80} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+                <div className="grid gap-1.5">
+                  <Label htmlFor="name" className="text-xs">Your Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    required
+                    maxLength={80}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter full name"
+                  />
                 </div>
               )}
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="email" className="text-xs">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
-              <div className="grid gap-2">
+
+              <div className="grid gap-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-xs">Password</Label>
                   {mode === "login" && (
-                    <button type="button" onClick={() => void forgotPassword()} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
-                      Forgot password?
+                    <button
+                      type="button"
+                      onClick={() => void forgotPassword()}
+                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                    >
+                      Forgot?
                     </button>
                   )}
                 </div>
@@ -140,57 +270,41 @@ export default function CustomerLoginPage() {
                   name="password"
                   type="password"
                   required
-                  minLength={6}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                {mode === "register" && <p className="text-xs text-muted-foreground">At least 6 characters.</p>}
               </div>
-              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-              {notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
-              <Button type="submit" size="lg" disabled={busy}>
-                {busy ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
+
+              {error && <p role="alert" className="text-xs font-medium text-destructive">{error}</p>}
+              {notice && <p role="status" className="text-xs text-emerald-700">{notice}</p>}
+
+              <Button type="submit" variant="secondary" size="sm" disabled={busy} className="w-full">
+                {busy ? "Signing in…" : mode === "login" ? `Sign In (${activeRole.label})` : "Create Customer Account"}
               </Button>
             </form>
 
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="h-px flex-1 bg-border" />
-              or
-              <span className="h-px flex-1 bg-border" />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              disabled={busy}
-              onClick={() => void finish(() => signInWithPopup(clientAuth(), new GoogleAuthProvider()))}
-            >
-              <GoogleMark /> Continue with Google
-            </Button>
-            {ON_EMULATOR && (
+            {/* Google Login Option */}
+            <div className="space-y-2 border-t pt-2">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 disabled={busy}
-                onClick={() => void finish(() => signInWithCredential(clientAuth(), GoogleAuthProvider.credential(DEMO_CLIENT)))}
+                onClick={() => void finish(() => signInWithPopup(clientAuth(), new GoogleAuthProvider()))}
+                className="w-full text-xs"
               >
-                Demo client (test only)
+                <GoogleMark /> Continue with Google
               </Button>
-            )}
+            </div>
           </CardContent>
         </Card>
-        <div className="text-center text-sm text-muted-foreground space-y-2">
-          <p>
-            Mill staff or owner?{" "}
-            <Link href="/admin/login" className="font-medium text-foreground underline-offset-4 hover:underline">
-              Staff login →
-            </Link>
-          </p>
-          <p>
-            <Link href="/" className="underline-offset-4 hover:underline">← Back to website</Link>
-          </p>
-        </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          <Link href="/" className="underline-offset-4 hover:underline">
+            ← Back to Mill Website
+          </Link>
+        </p>
       </div>
     </main>
   );
