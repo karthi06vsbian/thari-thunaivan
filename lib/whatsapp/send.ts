@@ -1,12 +1,13 @@
 import { db } from "@/lib/firebase/admin";
-import { getOwners } from "@/lib/data";
+import { OWNER_PHONE } from "./numbers";
 
 const GRAPH = "https://graph.facebook.com/v21.0";
 
 /**
- * Sends a WhatsApp text through the Cloud API. Every message is also recorded in
- * whatsappOutbox; without WHATSAPP_TOKEN it is only recorded, which is how local
- * development works.
+ * Sends a WhatsApp text through the Meta Cloud API.
+ * Every message is also recorded in whatsappOutbox so you can inspect
+ * what was sent from the admin panel. Without WHATSAPP_TOKEN the
+ * message is only recorded (this is how local development works).
  */
 export async function sendWhatsApp(to: string, body: string, kind: string): Promise<void> {
   const token = process.env.WHATSAPP_TOKEN;
@@ -27,8 +28,18 @@ export async function sendWhatsApp(to: string, body: string, kind: string): Prom
   await db().collection("whatsappOutbox").add({ to, body, kind, status, at: new Date().toISOString() });
 }
 
+/**
+ * Sends to the registered owner (918778606059).
+ * The owner number comes from lib/whatsapp/numbers.ts — edit it there.
+ */
 export async function sendToOwners(body: string, kind: string): Promise<number> {
-  const owners = (await getOwners()).filter((o) => o.phone);
-  await Promise.all(owners.map((o) => sendWhatsApp(o.phone!, body, kind)));
-  return owners.length;
+  await sendWhatsApp(OWNER_PHONE, body, kind);
+  return 1;
+}
+
+/**
+ * Sends an order status update directly to a specific client number.
+ */
+export async function sendToClient(clientPhone: string, body: string, kind: string): Promise<void> {
+  await sendWhatsApp(clientPhone, body, kind);
 }

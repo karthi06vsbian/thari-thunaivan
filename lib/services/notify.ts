@@ -3,7 +3,8 @@ import type { IsoDate } from "@/lib/planning/types";
 import { buildAlerts, dailySummaryText, getAtRiskOrders } from "@/lib/reports";
 import { formatDate, todayIso } from "@/lib/dates";
 import { formatNumber } from "@/lib/money";
-import { sendToOwners } from "@/lib/whatsapp/send";
+import { sendToClient, sendToOwners } from "@/lib/whatsapp/send";
+import { CLIENTS } from "@/lib/whatsapp/numbers";
 
 export async function sendDailySummary(today: IsoDate): Promise<number> {
   return sendToOwners(await dailySummaryText(today), "daily-summary");
@@ -21,8 +22,8 @@ export async function sendNewAlerts(today: IsoDate): Promise<string[]> {
 }
 
 /**
- * Sends a WhatsApp alert to all owners when an order is marked as completed.
- * Called from the order completion server action.
+ * Sends a WhatsApp alert to the owner AND all registered clients when an order is completed.
+ * Owner gets internal costing details; clients get a clean delivery confirmation.
  */
 export async function sendOrderCompletedAlert(params: {
   orderNo: string;
@@ -31,13 +32,25 @@ export async function sendOrderCompletedAlert(params: {
   meters: number;
 }): Promise<void> {
   const { orderNo, customerName, fabricType, meters } = params;
-  const message = [
+
+  // Owner message — includes customer details
+  const ownerMsg = [
     `✅ *Order Completed: ${orderNo}*`,
     `Customer: ${customerName}`,
     `Fabric: ${fabricType} · ${formatNumber(meters)} m`,
     `Completed on: ${formatDate(todayIso(), true)}`,
   ].join("\n");
-  await sendToOwners(message, "order-completed");
+  await sendToOwners(ownerMsg, "order-completed");
+
+  // Client message — clean delivery confirmation, no internal data
+  const clientMsg = [
+    `✅ *Your order ${orderNo} is ready!*`,
+    `Fabric: ${fabricType} · ${formatNumber(meters)} m`,
+    `Completed on: ${formatDate(todayIso(), true)}`,
+    ``,
+    `Please contact us to arrange delivery. Thank you for your order!`,
+  ].join("\n");
+  await Promise.all(CLIENTS.map((c) => sendToClient(c.phone, clientMsg, "order-completed-client")));
 }
 
 /**

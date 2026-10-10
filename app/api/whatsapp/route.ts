@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { getOwners } from "@/lib/data";
+import { handleClientMessage } from "@/lib/whatsapp/client-commands";
 import { handleOwnerMessage } from "@/lib/whatsapp/commands";
+import { isClient, isOwner } from "@/lib/whatsapp/numbers";
 import { sendWhatsApp } from "@/lib/whatsapp/send";
 
 /** Webhook verification handshake from Meta. */
@@ -29,18 +30,31 @@ export async function POST(request: NextRequest) {
   const secret = process.env.WHATSAPP_APP_SECRET;
   // Without the app secret we cannot tell Meta's calls from anyone else's, so refuse.
   if (!secret) return new NextResponse("WhatsApp webhook is not configured", { status: 503 });
+
   const raw = await request.text();
   if (!validSignature(raw, request.headers.get("x-hub-signature-256"), secret)) {
     return new NextResponse("Invalid signature", { status: 401 });
   }
 
   const payload = JSON.parse(raw) as WebhookPayload;
-  const messages = (payload.entry ?? []).flatMap((e) => (e.changes ?? []).flatMap((c) => c.value?.messages ?? []));
-  const ownerPhones = new Set((await getOwners()).map((o) => o.phone).filter(Boolean));
+  const messages = (payload.entry ?? []).flatMap((e) =>
+    (e.changes ?? []).flatMap((c) => c.value?.messages ?? []),
+  );
+
   for (const m of messages) {
-    // The menu exposes mill data, so only registered owner numbers get replies.
-    if (m.type !== "text" || !m.text || !ownerPhones.has(m.from)) continue;
-    await sendWhatsApp(m.from, await handleOwnerMessage(m.text.body), "reply");
+    if (m.type !== "text" || !m.text) continue;
+
+    if (isOwner(m.from)) {
+      // Owner gets full mill data: machines, electricity, planning, at-risk, summaries.
+      const reply = await handleOwnerMessage(m.text.body);
+      await sendWhatsApp(m.from, reply, "owner-reply");
+    } else if (isClient(m.from)) {
+      // Client gets order status only — no internal mill data is exposed.
+      const reply = await handleClientMessage(m.text.body, m.from);
+      await sendWhatsApp(m.from, reply, "client-reply");
+    }
+    // Unknown numbers are silently ignored — no data is ever sent to unregistered phones.
   }
+
   return NextResponse.json({ ok: true });
 }
