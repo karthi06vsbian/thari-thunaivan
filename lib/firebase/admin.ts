@@ -5,7 +5,7 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 export const projectId =
   process.env.FIREBASE_PROJECT_ID ?? process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "thari-thunaivan";
 
-function parseServiceAccountKey(raw: string | undefined): Record<string, unknown> | undefined {
+export function parseServiceAccountKey(raw: string | undefined): Record<string, unknown> | undefined {
   if (!raw) return undefined;
   let str = raw.trim();
   // Strip outer single or double quotes (e.g. from env files)
