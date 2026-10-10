@@ -14,6 +14,7 @@ const NAV: (NavItem & { roles: Role[] })[] = [
   { href: "/admin/machines", label: "Machines", icon: "machines", roles: ACCESS.machines },
   { href: "/admin/planning", label: "Planning", icon: "planning", roles: ACCESS.planning },
   { href: "/admin/production-logs", label: "Production logs", icon: "logs", roles: ACCESS.productionLogs },
+  { href: "/admin/quality", label: "Quality check", icon: "quality", roles: ACCESS.quality },
   { href: "/admin/electricity", label: "Electricity", icon: "electricity", roles: ACCESS.electricity },
   { href: "/admin/orders", label: "Orders & costing", icon: "orders", roles: ACCESS.orders },
   { href: "/admin/whatsapp", label: "WhatsApp", icon: "whatsapp", roles: ACCESS.whatsapp },
@@ -27,7 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-brand-soft/40 md:grid md:grid-cols-[230px_1fr]">
-      <aside className="hero-weave flex flex-col gap-4 p-3 text-white md:sticky md:top-0 md:h-screen">
+      <aside className="hero-weave flex flex-col gap-4 p-3 text-white md:sticky md:top-0 md:h-screen print:hidden">
         <div className="px-3 pt-2">
           <p className="text-lg font-bold tracking-tight">Thari Thunaivan</p>
           <p className="flex items-center gap-2 text-xs text-white/70">

@@ -23,6 +23,9 @@
 # misc
 .DS_Store
 *.pem
+bundle-*.png
+bundle-*.jpg
+bundle-*.svg
 
 # debug
 npm-debug.log*

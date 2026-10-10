@@ -182,3 +182,28 @@ export interface AuditLog {
   entityId: string;
   details: string;
 }
+
+export type QcResult = "pass" | "rework" | "fail";
+
+/** One roll or bundle of finished fabric, identified by the QR code on its label. */
+export interface Bundle {
+  id: string;
+  bundleNo: string;
+  batchId: string;
+  orderNo: string;
+  fabricType: string;
+  createdAt: string;
+  createdBy: string;
+  status: "pending" | QcResult;
+  /** Filled in by the quality check. */
+  lengthMeters: number | null;
+  widthInches: number | null;
+  gsm: number | null;
+  defects: number | null;
+  grade: "A" | "B" | "C" | null;
+  /** 0-100, worked out from defects per 100 m and grade when the check is saved. */
+  qualityScore: number | null;
+  remarks: string;
+  checkedBy: string | null;
+  checkedAt: string | null;
+}

@@ -6,6 +6,7 @@ import { getAuditLogs, getBatches, getDailyStats, getMachines } from "@/lib/data
 import { formatDate, todayIso } from "@/lib/dates";
 import { formatINR, formatNumber } from "@/lib/money";
 import { db } from "@/lib/firebase/admin";
+import { getRecentChecks, QC_LABEL } from "@/lib/quality";
 import { buildAlerts, countStatuses } from "@/lib/reports";
 
 interface Enquiry {
@@ -36,6 +37,8 @@ export default async function OverviewPage({
   ]);
   const counts = countStatuses(machines);
   // Customer contact details: owner and manager only.
+  // Owner and manager see every quality check as soon as it is saved.
+  const qualityChecks = ACCESS.planning.includes(user.role) ? await getRecentChecks() : null;
   const enquiries = ACCESS.planning.includes(user.role)
     ? (await db().collection("enquiries").orderBy("at", "desc").limit(5).get()).docs.map(
         (d) => ({ id: d.id, ...d.data() }) as Enquiry,
@@ -112,6 +115,32 @@ export default async function OverviewPage({
           </CardContent>
         </Card>
       </div>
+      {qualityChecks && (
+        <Card>
+          <CardHeader><CardTitle>Latest quality checks</CardTitle></CardHeader>
+          <CardContent>
+            {qualityChecks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No bundles have been checked yet.</p>
+            ) : (
+              <ul className="grid gap-2 text-sm">
+                {qualityChecks.map((b) => (
+                  <li key={b.id} className="flex flex-wrap justify-between gap-x-4 rounded-lg border px-3 py-2">
+                    <span>
+                      <Link className="font-medium underline-offset-4 hover:underline" href={`/admin/quality/${b.id}`}>{b.bundleNo}</Link>
+                      {" · "}{QC_LABEL[b.status]}{typeof b.qualityScore === "number" && ` · score ${b.qualityScore}`} · grade {b.grade} · {b.lengthMeters} m × {b.widthInches}&quot; · {b.defects} defect(s)
+                      {b.remarks && <span className="text-muted-foreground"> — {b.remarks}</span>}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {b.checkedBy} ·{" "}
+                      {new Date(b.checkedAt!).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
       {enquiries && (
         <Card>
           <CardHeader><CardTitle>Website enquiries</CardTitle></CardHeader>
