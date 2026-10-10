@@ -6,7 +6,10 @@ import { getAuditLogs, getBatches, getDailyStats, getMachines } from "@/lib/data
 import { formatDate, todayIso } from "@/lib/dates";
 import { formatINR, formatNumber } from "@/lib/money";
 import { db } from "@/lib/firebase/admin";
+import { Stars } from "@/components/stars";
 import { getRecentChecks, QC_LABEL } from "@/lib/quality";
+import { getAllReviews, PUBLIC_MIN_RATING } from "@/lib/reviews";
+import { ReviewControls } from "./review-controls";
 import { buildAlerts, countStatuses } from "@/lib/reports";
 
 interface Enquiry {
@@ -30,7 +33,7 @@ export default async function OverviewPage({
   const today = todayIso();
   const seesAll = ACCESS.planning.includes(user.role);
   // Everything is fetched together so the page waits for the slowest read, not the sum of them.
-  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries] = await Promise.all([
+  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries, reviews] = await Promise.all([
     getMachines(),
     getDailyStats(today),
     getBatches(),
@@ -44,13 +47,14 @@ export default async function OverviewPage({
           snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Enquiry),
         )
       : null,
+    seesAll ? getAllReviews() : null,
   ]);
   const counts = countStatuses(machines);
   const activeBatches = batches.filter((b) => b.status === "in_progress" || b.status === "planned");
 
   return (
     <>
-      <PageHeader title="Overview" description={`${formatDate(today, true)} · signed in as ${user.name}`} />
+      <PageHeader title="📊 Overview" description={`${formatDate(today, true)} · signed in as ${user.name}`} />
       {denied && (
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
           Your role does not have access to that page.
@@ -81,10 +85,10 @@ export default async function OverviewPage({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Alerts</CardTitle></CardHeader>
+          <CardHeader><CardTitle>🚨 Alerts</CardTitle></CardHeader>
           <CardContent>
             {alerts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nothing needs attention.</p>
+              <p className="text-sm text-muted-foreground">✅ Nothing needs attention.</p>
             ) : (
               <ul className="grid gap-2 text-sm">
                 {alerts.map((a) => (
@@ -95,7 +99,7 @@ export default async function OverviewPage({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Recent activity</CardTitle></CardHeader>
+          <CardHeader><CardTitle>🕒 Recent activity</CardTitle></CardHeader>
           <CardContent>
             {audit.length === 0 ? (
               <p className="text-sm text-muted-foreground">No activity yet.</p>
@@ -119,7 +123,7 @@ export default async function OverviewPage({
       </div>
       {qualityChecks && (
         <Card>
-          <CardHeader><CardTitle>Latest quality checks</CardTitle></CardHeader>
+          <CardHeader><CardTitle>🔍 Latest quality checks</CardTitle></CardHeader>
           <CardContent>
             {qualityChecks.length === 0 ? (
               <p className="text-sm text-muted-foreground">No bundles have been checked yet.</p>
@@ -143,9 +147,36 @@ export default async function OverviewPage({
           </CardContent>
         </Card>
       )}
+      {reviews && (
+        <Card>
+          <CardHeader><CardTitle>⭐ Client reviews</CardTitle></CardHeader>
+          <CardContent>
+            {reviews.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No client has left a review yet. Clients can rate an order once it is delivered.</p>
+            ) : (
+              <ul className="grid gap-3 text-sm">
+                {reviews.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border px-3 py-2">
+                    <div>
+                      <p className="flex flex-wrap items-center gap-2 font-medium">
+                        <Stars rating={r.rating} /> {r.name} · {r.orderNo}
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${r.approved ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                          {r.approved ? (r.rating >= PUBLIC_MIN_RATING ? "On the website" : "Approved, below 4 stars so not shown") : "Waiting for approval"}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-muted-foreground">“{r.text}”</p>
+                    </div>
+                    <ReviewControls orderNo={r.orderNo} approved={r.approved} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
       {enquiries && (
         <Card>
-          <CardHeader><CardTitle>Website enquiries</CardTitle></CardHeader>
+          <CardHeader><CardTitle>📨 Website enquiries</CardTitle></CardHeader>
           <CardContent>
             {enquiries.length === 0 ? (
               <p className="text-sm text-muted-foreground">No enquiries from the website yet.</p>

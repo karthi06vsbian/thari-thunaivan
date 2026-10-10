@@ -14,6 +14,7 @@ import { dailyElectricityCost, estimateUnits } from "@/lib/planning/energy";
 import type { ExistingAllocation, PlanInputs, ShiftSettings } from "@/lib/planning/types";
 import { planDocFrom } from "@/lib/services/plans";
 import { sampleShipments } from "@/lib/transport/data";
+import { CLIENTS } from "@/lib/whatsapp/numbers";
 import {
   commitInChunks,
   recomputeBatchPower,
@@ -21,6 +22,13 @@ import {
   recomputeRolling,
 } from "@/lib/services/recompute";
 import type { Batch, ElectricityReading, MachineDoc, MachineLog, Order, StaffRole as Role } from "@/lib/types";
+
+const DEMO_CLIENT_ORDERS = ["ORD-1001", "ORD-1003"];
+// Made-up addresses for the sample orders.
+const SAMPLE_ADDRESS: Record<string, string> = {
+  "ORD-1001": "Sri Lakshmi Textiles, 14 Godown Street, George Town, Chennai 600001",
+  "ORD-1003": "Erode Weavers Co-op, 27 Brough Road, Erode 638001",
+};
 
 const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST;
 const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST;
@@ -190,7 +198,11 @@ async function main() {
     }
     const status: Order["status"] =
       state === "completed" ? "completed" : state === "running" ? "in_production" : "confirmed";
-    writes.push((b) => b.set(db().collection("orders").doc(orderId), { ...order, status }));
+    // Two sample orders belong to the demo client, so the client portal has tracking to show.
+    const demoClient = DEMO_CLIENT_ORDERS.includes(o.orderNo)
+      ? { clientUid: `wa${CLIENTS[0]!.phone}`, clientPhone: CLIENTS[0]!.phone, deliveryAddress: SAMPLE_ADDRESS[o.orderNo] ?? null, requestedAt: `${addDays(inputs.startDate, -2)}T05:30:00.000Z` }
+      : {};
+    writes.push((b) => b.set(db().collection("orders").doc(orderId), { ...order, status, ...demoClient }));
     writes.push((b) => b.set(db().collection("batches").doc(batchId), batch));
     writes.push((b) =>
       b.set(

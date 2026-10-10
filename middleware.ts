@@ -5,7 +5,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname === "/admin/login" || request.cookies.get("__session")) return NextResponse.next();
   // Staff pages go to the staff login at /admin/login, the client portal to the client login.
-  return NextResponse.redirect(new URL(pathname.startsWith("/admin") ? "/admin/login" : "/login", request.url));
+  if (!pathname.startsWith("/admin")) return NextResponse.redirect(new URL("/login", request.url));
+  // Remember the page that was asked for (a scanned bundle label, say) so sign-in returns to it.
+  const login = new URL("/admin/login", request.url);
+  if (pathname !== "/admin") login.searchParams.set("next", pathname);
+  return NextResponse.redirect(login);
 }
 
 export const config = { matcher: ["/admin/:path*", "/portal/:path*"] };

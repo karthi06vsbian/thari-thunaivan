@@ -29,7 +29,7 @@ export default async function QualityPage() {
 
   return (
     <>
-      <PageHeader title="Quality check" description="Scan a bundle's QR label, enter its length, width and test results, and save." />
+      <PageHeader title="🔍 Quality check" description="Scan a bundle's QR label, enter its length, width and test results, and save." />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi label="Waiting for check" value={String(count("pending"))} />
         <Kpi label="Passed" value={String(count("pass"))} hint={`${formatNumber(Math.round(checkedMeters))} m approved`} />
@@ -40,7 +40,7 @@ export default async function QualityPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Check a bundle</CardTitle>
+            <CardTitle>📷 Check a bundle</CardTitle>
             <CardDescription>
               Point the camera at the QR code on the bundle. A phone&apos;s own camera app also works: it opens the bundle&apos;s page directly.
             </CardDescription>
@@ -49,7 +49,7 @@ export default async function QualityPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>New bundles after production</CardTitle>
+            <CardTitle>🏷️ New bundles after production</CardTitle>
             <CardDescription>Creates a QR label for each bundle of a batch, ready to print and stick on.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -59,7 +59,7 @@ export default async function QualityPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Bundles</CardTitle></CardHeader>
+        <CardHeader><CardTitle>🧶 Bundles</CardTitle></CardHeader>
         <CardContent>
           {bundles.length === 0 ? (
             <p className="text-sm text-muted-foreground">No bundles yet. Create QR labels for a batch to start.</p>

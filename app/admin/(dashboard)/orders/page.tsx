@@ -19,7 +19,7 @@ export default async function OrdersPage() {
   return (
     <>
       <PageHeader
-        title="Orders & costing"
+        title="📦 Orders & costing"
         description="Each batch with its machines, progress and cost per meter. Power cost comes from the machine energy logged against the batch."
       />
       {requests.length > 0 && (
@@ -42,6 +42,7 @@ export default async function OrdersPage() {
                     {formatNumber(o.meters)} m <span className="capitalize">{o.fabricType}</span> at {o.widthInches}&quot; · needed by{" "}
                     {formatDate(o.deadline, true)}
                   </p>
+                  {o.deliveryAddress && <p className="mt-1"><span className="text-muted-foreground">Deliver to: </span>{o.deliveryAddress}</p>}
                   {o.confirmMode === "prepaid" && (
                     <p className="mt-1 font-medium text-amber-700">
                       Prepaid · waiting for the client to pay {formatINR(o.advancePaise ?? 0, { whole: true })} advance online

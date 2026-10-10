@@ -22,7 +22,7 @@ export default async function WhatsAppPage() {
 
   return (
     <>
-      <PageHeader title="WhatsApp" description="Owner bot menu, client direct messaging, automated alerts & outbox." />
+      <PageHeader title="💬 WhatsApp" description="Owner bot menu, client direct messaging, automated alerts & outbox." />
       {!configured && (
         <p className="rounded-lg border px-3 py-2 text-sm text-muted-foreground">
           WhatsApp is not connected (no WHATSAPP_TOKEN). Messages are recorded below instead of being sent.

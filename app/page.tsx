@@ -3,10 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, Gauge, Ruler, Zap } from "lucide-react";
 import { CountUp, Reveal } from "@/components/reveal";
+import { SiteGallery } from "@/components/site-gallery";
+import { SiteReviews } from "@/components/site-reviews";
 import { buttonVariants } from "@/components/ui/button";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { EnquiryForm } from "./enquiry-form";
+
+// Rebuilt at most every five minutes, so newly approved reviews appear without a redeploy.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: `${SITE.name} – Weaving mill`,
@@ -82,6 +87,8 @@ export default function HomePage() {
               ["#about", "About", "md:block"],
               ["#fabrics", "Products", "sm:block"],
               ["#process", "How we work", "sm:block"],
+              ["#gallery", "Gallery", "lg:block"],
+              ["#reviews", "Reviews", "lg:block"],
               ["#faq", "FAQ", "md:block"],
             ].map(([href, label, show]) => (
               <a key={href} href={href} className={cn("hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-brand-soft hover:text-brand", show)}>
@@ -143,7 +150,7 @@ export default function HomePage() {
         <section id="about" className="scroll-mt-16 border-t bg-brand-soft/60">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 lg:grid-cols-2">
             <Reveal>
-              <p className="text-sm font-semibold tracking-widest text-teal uppercase">About the mill</p>
+              <p className="text-sm font-semibold tracking-widest text-teal uppercase"><span aria-hidden="true">🏭</span> About the mill</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight">Run on numbers, not guesswork</h2>
               <p className="mt-4 text-muted-foreground">
                 {SITE.name} is a weaving mill with 50 looms on one floor. We weave fabric to order for garment makers,
@@ -175,7 +182,7 @@ export default function HomePage() {
         <section id="fabrics" className="scroll-mt-16">
           <div className="mx-auto max-w-6xl px-4 py-16">
             <Reveal>
-              <p className="text-sm font-semibold tracking-widest text-teal uppercase">Our products</p>
+              <p className="text-sm font-semibold tracking-widest text-teal uppercase"><span aria-hidden="true">🧵</span> Our products</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight">What we weave</h2>
               <p className="mt-2 max-w-2xl text-muted-foreground">Made to your width and quantity. If you do not see your fabric here, ask us.</p>
             </Reveal>
@@ -211,7 +218,7 @@ export default function HomePage() {
         <section id="process" className="scroll-mt-16 border-t bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16">
             <Reveal>
-              <p className="text-sm font-semibold tracking-widest text-teal uppercase">How we work</p>
+              <p className="text-sm font-semibold tracking-widest text-teal uppercase"><span aria-hidden="true">⚙️</span> How we work</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight">From enquiry to delivery</h2>
             </Reveal>
             <ol className="relative mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -234,7 +241,7 @@ export default function HomePage() {
         <section id="faq" className="scroll-mt-16 border-t">
           <div className="mx-auto max-w-3xl px-4 py-16">
             <Reveal>
-              <h2 className="text-3xl font-bold tracking-tight">Questions buyers ask</h2>
+              <h2 className="text-3xl font-bold tracking-tight"><span aria-hidden="true">❓</span> Questions buyers ask</h2>
             </Reveal>
             <Reveal delay={100}>
               <div className="mt-6 divide-y overflow-hidden rounded-2xl border bg-card">
@@ -255,7 +262,7 @@ export default function HomePage() {
         <section id="enquiry" className="scroll-mt-16 border-t bg-brand-soft/60">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 lg:grid-cols-[1fr_1.4fr]">
             <Reveal>
-              <p className="text-sm font-semibold tracking-widest text-teal uppercase">Get a quote</p>
+              <p className="text-sm font-semibold tracking-widest text-teal uppercase"><span aria-hidden="true">💬</span> Get a quote</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight">Tell us what you need</h2>
               <p className="mt-2 text-muted-foreground">We will call you back with a price and a delivery date.</p>
               <p className="mt-4 rounded-xl border border-teal/30 bg-teal-soft px-4 py-3 text-sm">
@@ -284,6 +291,8 @@ export default function HomePage() {
             </Reveal>
           </div>
         </section>
+        <SiteGallery />
+        <SiteReviews />
       </main>
 
       <footer className="bg-brand-dark text-white">
@@ -296,6 +305,8 @@ export default function HomePage() {
             <a href="#about" className="hover:text-white">About</a>
             <a href="#fabrics" className="hover:text-white">Products</a>
             <a href="#process" className="hover:text-white">How we work</a>
+            <a href="#gallery" className="hover:text-white">Gallery</a>
+            <a href="#reviews" className="hover:text-white">Reviews</a>
             <a href="#enquiry" className="hover:text-white">Get a quote</a>
           </nav>
           <div className="grid content-start gap-1 text-white/70 sm:justify-items-end">

@@ -35,7 +35,7 @@ export default async function MachinesPage() {
 
   return (
     <>
-      <PageHeader title="Machines" description="Live status of every machine on the floor." />
+      <PageHeader title="🏭 Machines" description="Live status of every machine on the floor." />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi label="Running" value={`${counts.running} / ${counts.total}`} />
         <Kpi label="Idle" value={String(counts.idle)} />

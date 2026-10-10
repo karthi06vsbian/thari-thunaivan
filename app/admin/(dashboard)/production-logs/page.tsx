@@ -67,7 +67,7 @@ export default async function ProductionLogsPage({
 
   return (
     <>
-      <PageHeader title="Production logs" description="Enter running hours and output for every machine, shift by shift.">
+      <PageHeader title="📝 Production logs" description="Enter running hours and output for every machine, shift by shift.">
         <form className="flex flex-wrap items-end gap-2">
           <label className="grid gap-1 text-xs text-muted-foreground">
             Date

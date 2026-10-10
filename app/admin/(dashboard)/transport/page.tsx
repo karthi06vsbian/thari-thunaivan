@@ -36,13 +36,13 @@ export default async function TransportPage() {
   const trucks: LiveTruck[] = onRoad.map((s) => ({
     id: s.id, orderNo: s.orderNo, customerName: s.customerName, routeId: s.routeId,
     vehicleNo: s.vehicleNo, driverName: s.driverName, dispatchedAt: s.dispatchedAt,
-    demoCycleSeconds: s.demoCycleSeconds ?? null, sample: !!s.sample,
+    demoCycleSeconds: s.demoCycleSeconds ?? null, sample: !!s.sample, deliveryAddress: s.deliveryAddress ?? null,
   }));
   const routeOptions = ROUTES.map((r) => ({ id: r.id, label: `${r.destination} · ${Math.round(routeKm(r))} km · ${r.days} day${r.days > 1 ? "s" : ""}` }));
 
   return (
     <>
-      <PageHeader title="Transport" description="Orders going out, where each truck is, and how long each delivery takes." />
+      <PageHeader title="🚚 Transport" description="Orders going out, where each truck is, and how long each delivery takes." />
 
       <div className="relative overflow-hidden rounded-2xl border">
         <TruckScene className="block h-40 w-full sm:h-48" />
@@ -64,7 +64,7 @@ export default async function TransportPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Live truck location</CardTitle>
+          <CardTitle>🗺️ Live truck location</CardTitle>
           <CardDescription>Click a truck to zoom to it.</CardDescription>
         </CardHeader>
         <CardContent><LiveMap trucks={trucks} /></CardContent>
@@ -72,7 +72,7 @@ export default async function TransportPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>On the road</CardTitle>
+          <CardTitle>🛣️ On the road</CardTitle>
           <CardDescription>Days to complete each delivery, with the latest updates from the route.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -96,6 +96,7 @@ export default async function TransportPage() {
                       {formatNumber(s.meters)} m <span className="capitalize">{s.fabricType}</span> · Erode → {route?.destination ?? s.routeId} ·{" "}
                       {route ? `${Math.round(routeKm(route))} km` : ""} · truck {s.vehicleNo} · driver {s.driverName}
                     </p>
+                    {s.deliveryAddress && <p className="text-sm"><span className="text-muted-foreground">Deliver to: </span>{s.deliveryAddress}</p>}
                   </div>
                   <dl className="flex gap-6 text-right text-sm">
                     <div>
@@ -127,7 +128,7 @@ export default async function TransportPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Ready to load</CardTitle>
+            <CardTitle>📦 Ready to load</CardTitle>
             <CardDescription>Finished orders waiting for a truck.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
@@ -145,7 +146,7 @@ export default async function TransportPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Coming off the looms</CardTitle>
+            <CardTitle>🧵 Coming off the looms</CardTitle>
             <CardDescription>Days until each order is finished and ready for a truck.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -183,7 +184,7 @@ export default async function TransportPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Delivered</CardTitle></CardHeader>
+        <CardHeader><CardTitle>✅ Delivered</CardTitle></CardHeader>
         <CardContent>
           {delivered.length === 0 ? (
             <p className="text-sm text-muted-foreground">No deliveries recorded yet.</p>

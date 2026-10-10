@@ -27,7 +27,7 @@ export function OrderForm({
 }: {
   fabrics: { name: string; value: string; ratePerMeter: number }[];
   minDate: string;
-  defaults: { company: string; phone: string };
+  defaults: { company: string; phone: string; address: string };
   advancePercent: number;
   visitSlots: string[];
   /** False until the Razorpay secret is configured on the server. */
@@ -61,6 +61,7 @@ export function OrderForm({
           meters: Number(meters),
           deadline: text("deadline"),
           notes: text("notes"),
+          deliveryAddress: text("deliveryAddress"),
           confirmMode: mode,
           appointmentDate: text("appointmentDate"),
           appointmentSlot: text("appointmentSlot"),
@@ -73,11 +74,12 @@ export function OrderForm({
         setFabricType("");
         setMeters("");
         // Prepaid: the order exists now; the payment window confirms it.
-        setResult(
-          res.data?.checkout
-            ? await payForOrder(res.data.checkout, companyName)
-            : { ok: true, text: res.message ?? "Order sent." },
-        );
+        const outcome = res.data?.checkout
+          ? await payForOrder(res.data.checkout, companyName)
+          : { ok: true, text: res.message ?? "Order sent." };
+        setResult(outcome);
+        // Straight to the new order's tracking page.
+        if (res.data?.orderId) router.push(`/portal/orders/${res.data.orderId}`);
         router.refresh();
       } catch (e) {
         setResult({ ok: false, text: e instanceof Error ? e.message : "Something went wrong" });
@@ -89,7 +91,7 @@ export function OrderForm({
   const options: { id: ConfirmMode; title: string; text: string; disabled?: boolean }[] = [
     {
       id: "prepaid",
-      title: "Prepaid – pay advance online",
+      title: "💳 Prepaid – pay advance online",
       text: onlinePayment
         ? `Pay ${advancePercent}% now by UPI, card or net banking. Your order is confirmed immediately.`
         : "Online payment is not available yet.",
@@ -97,7 +99,7 @@ export function OrderForm({
     },
     {
       id: "cash",
-      title: "Cash on confirmation – book a visit",
+      title: "🤝 Cash on confirmation – book a visit",
       text: "Book an appointment at the mill. Your order is confirmed when you visit and pay.",
     },
   ];
@@ -136,6 +138,20 @@ export function OrderForm({
           <Label htmlFor="deadline">Needed by</Label>
           <Input id="deadline" name="deadline" type="date" required min={minDate} />
         </div>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="deliveryAddress"><span aria-hidden="true">📍</span> Delivery address</Label>
+        <Textarea
+          id="deliveryAddress"
+          name="deliveryAddress"
+          rows={2}
+          required
+          minLength={10}
+          maxLength={300}
+          defaultValue={defaults.address}
+          autoComplete="street-address"
+          placeholder="Shop / godown name, street, area, city and PIN code"
+        />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="notes">Anything else? (optional)</Label>

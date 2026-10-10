@@ -1,20 +1,32 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { adminAuth, db } from "@/lib/firebase/admin";
-import { SESSION_COOKIE, SESSION_MAX_AGE_MS } from "@/lib/auth/session";
-import type { Role } from "@/lib/types";
+import { getSessionUser, SESSION_COOKIE, SESSION_MAX_AGE_MS } from "@/lib/auth/session";
+import type { Role, StaffRole } from "@/lib/types";
 
 type SessionResult = { ok: true; home: string } | { ok: false; error: string };
 
-/** `displayName` is only used when a brand-new client registers with email and password. */
-export async function createSession(idToken: string, displayName?: string): Promise<SessionResult> {
+/**
+ * `displayName` is only used when a brand-new client registers with email and password.
+ * `expectedRole` comes from the admin login, where the person picks Owner, Manager or
+ * Supervisor: the ID must really hold that role or no session is started.
+ */
+export async function createSession(
+  idToken: string,
+  displayName?: string,
+  expectedRole?: StaffRole,
+): Promise<SessionResult> {
   try {
     const decoded = await adminAuth().verifyIdToken(idToken);
     const ref = db().collection("users").doc(decoded.uid);
     const snap = await ref.get();
     let role = snap.exists ? (snap.data()!.role as Role) : null;
+
+    if (expectedRole && role !== expectedRole) {
+      return { ok: false, error: "This ID does not have that access. Pick the icon that matches your account and try again." };
+    }
 
     if (!role) {
       // Anyone who registers or signs in for the first time becomes a client. Staff roles
@@ -47,7 +59,12 @@ export async function createSession(idToken: string, displayName?: string): Prom
   }
 }
 
+/** Signs out and returns to the matching login page: staff to the admin login, clients to the client login. */
 export async function signOut(): Promise<void> {
+  const user = await getSessionUser();
+  // If the session has already expired, fall back to the page the button was pressed on.
+  const fromAdmin = ((await headers()).get("referer") ?? "").includes("/admin");
+  const staff = user ? user.role !== "client" : fromAdmin;
   (await cookies()).delete(SESSION_COOKIE);
-  redirect("/");
+  redirect(staff ? "/admin/login" : "/login");
 }

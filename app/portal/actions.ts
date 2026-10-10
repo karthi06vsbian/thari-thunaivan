@@ -30,6 +30,7 @@ const schema = z.object({
   meters: z.number().min(100, "Minimum order is 100 meters").max(1_000_000),
   deadline: z.string().refine(isIsoDate, "Choose the date you need it by"),
   notes: z.string().trim().max(1000),
+  deliveryAddress: z.string().trim().min(10, "Enter the full delivery address").max(300),
   confirmMode: z.enum(["prepaid", "cash"]),
   appointmentDate: z.string(),
   appointmentSlot: z.string(),
@@ -63,7 +64,7 @@ function checkoutInfo(order: Order, user: AppUser): CheckoutInfo {
  * cash orders book a visit and are confirmed by staff.
  */
 export async function placeOrder(input: z.infer<typeof schema>) {
-  return run<{ checkout?: CheckoutInfo }>(async () => {
+  return run<{ orderId: string; checkout?: CheckoutInfo }>(async () => {
     const user = await assertRole(["client"]);
     const parsed = schema.safeParse(input);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Please check the form");
@@ -104,6 +105,7 @@ export async function placeOrder(input: z.infer<typeof schema>) {
       clientUid: user.uid,
       clientPhone: o.phone,
       notes: o.notes,
+      deliveryAddress: o.deliveryAddress,
       requestedAt: new Date().toISOString(),
       confirmMode: o.confirmMode,
       paymentStatus: "pending",
@@ -115,7 +117,7 @@ export async function placeOrder(input: z.infer<typeof schema>) {
     };
     const { id, ...data } = order;
     await db().collection("orders").doc(id).set(data);
-    await db().collection("users").doc(user.uid).update({ company: o.company, phone: o.phone });
+    await db().collection("users").doc(user.uid).update({ company: o.company, phone: o.phone, address: o.deliveryAddress });
 
     // The owner hears about prepaid orders once the money is in, not before.
     if (!prepaid) {
@@ -124,6 +126,7 @@ export async function placeOrder(input: z.infer<typeof schema>) {
           `*New order request ${orderNo}* (cash on confirmation)`,
           `${o.company} · ${o.phone}`,
           `${o.meters.toLocaleString("en-IN")} m ${o.fabricType} at ${o.widthInches}" · needed by ${formatDate(o.deadline, true)}`,
+          `Deliver to: ${o.deliveryAddress}`,
           `Visit booked: ${formatDate(o.appointmentDate, true)}, ${o.appointmentSlot}`,
           o.notes,
           "Open Orders in the app to accept or decline after the visit.",
@@ -136,9 +139,9 @@ export async function placeOrder(input: z.infer<typeof schema>) {
     revalidatePath("/portal");
     revalidatePath("/admin", "layout");
     return prepaid
-      ? { data: { checkout: checkoutInfo(order, user) }, message: `Order ${orderNo} created. Complete the payment to confirm it.` }
+      ? { data: { orderId: orderNo, checkout: checkoutInfo(order, user) }, message: `Order ${orderNo} created. Complete the payment to confirm it.` }
       : {
-          data: {},
+          data: { orderId: orderNo },
           message: `Order ${orderNo} booked. Visit us on ${formatDate(o.appointmentDate, true)}, ${o.appointmentSlot} to confirm it.`,
         };
   });
@@ -202,13 +205,53 @@ export async function confirmPayment(input: z.infer<typeof paymentSchema>) {
         `*Order ${order.orderNo} confirmed – advance paid*`,
         `${order.customerName} · ${order.clientPhone ?? ""}`,
         `${order.meters.toLocaleString("en-IN")} m ${order.fabricType} at ${order.widthInches}" · needed by ${formatDate(order.deadline, true)}`,
+        order.deliveryAddress ? `Deliver to: ${order.deliveryAddress}` : "",
         `Advance received: ${formatINR(order.advancePaise ?? 0)} (Razorpay ${p.razorpayPaymentId})`,
         "It is ready to plan in the app.",
-      ].join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
       "order-paid",
     );
     revalidatePath("/portal");
     revalidatePath("/admin", "layout");
     return { message: `Payment received. Order ${order.orderNo} is confirmed.` };
+  });
+}
+
+const reviewSchema = z.object({
+  orderId: z.string().min(1),
+  rating: z.number().int().min(1).max(5),
+  text: z.string().trim().min(10, "Write at least a sentence about your order").max(400),
+});
+
+/** A client's review of a delivered order. It appears on the website only after staff approve it. */
+export async function submitReview(input: z.infer<typeof reviewSchema>) {
+  return run(async () => {
+    const user = await assertRole(["client"]);
+    const parsed = reviewSchema.safeParse(input);
+    if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Please check the form");
+    const r = parsed.data;
+    const order = await ownOrder(r.orderId, user);
+    const shipment = await db().collection("shipments").doc(order.orderNo).get();
+    if (shipment.data()?.status !== "delivered") throw new Error("You can review an order once it has been delivered");
+
+    await db().collection("reviews").doc(order.orderNo).set({
+      orderNo: order.orderNo,
+      clientUid: user.uid,
+      name: order.customerName,
+      about: `${order.meters.toLocaleString("en-IN")} m ${order.fabricType}`,
+      rating: r.rating,
+      text: r.text,
+      at: new Date().toISOString(),
+      approved: false,
+    });
+    await sendToOwners(
+      `*New client review – ${order.orderNo}*\n${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)} from ${order.customerName}\n“${r.text}”\nApprove it on the Overview page to show it on the website.`,
+      "review",
+    );
+    revalidatePath("/portal", "layout");
+    revalidatePath("/admin", "layout");
+    return { message: "Thank you! Your review will appear on our website once we have approved it." };
   });
 }

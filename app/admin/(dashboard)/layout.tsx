@@ -37,11 +37,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </p>
         </div>
         <Nav items={items} />
-        <div className="mt-auto hidden px-3 md:block">
+        <div className="mt-auto flex items-center justify-between gap-3 px-3 md:block">
           <p className="truncate text-sm font-medium">{user.name}</p>
           <p className="text-xs text-white/70 capitalize">{user.role}</p>
           <form action={signOut}>
-            <Button type="submit" variant="outline" size="sm" className="mt-2 w-full border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+            <Button type="submit" variant="outline" size="sm" className="w-auto border-white/30 md:mt-2 md:w-full bg-white/10 text-white hover:bg-white/20 hover:text-white">
               <LogOut /> Sign out
             </Button>
           </form>

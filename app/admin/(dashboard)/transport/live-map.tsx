@@ -16,6 +16,7 @@ export interface LiveTruck {
   dispatchedAt: string;
   demoCycleSeconds: number | null;
   sample: boolean;
+  deliveryAddress?: string | null;
 }
 
 // One colour per truck, in a fixed order, so a truck keeps its colour on the map and in the list.
@@ -34,7 +35,8 @@ function useNow(intervalMs: number): number | null {
   return now;
 }
 
-export function LiveMap({ trucks }: { trucks: LiveTruck[] }) {
+/** `compact` is the smaller version used on a client's order card. */
+export function LiveMap({ trucks, compact = false }: { trucks: LiveTruck[]; compact?: boolean }) {
   const container = useRef<HTMLDivElement>(null);
   const layers = useRef<{ map: LeafletMap; items: Map<string, { marker: Marker; done: Polyline; route: TransportRoute }> } | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
@@ -118,8 +120,12 @@ export function LiveMap({ trucks }: { trucks: LiveTruck[] }) {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
-      <div ref={container} className="z-0 h-[420px] overflow-hidden rounded-xl border" aria-label="Map of trucks on the road" />
+    <div className={cn("grid gap-4", compact ? "lg:grid-cols-[1.4fr_1fr]" : "xl:grid-cols-[1.6fr_1fr]")}>
+      <div
+        ref={container}
+        className={cn("z-0 overflow-hidden rounded-xl border", compact ? "h-64" : "h-[420px]")}
+        aria-label="Map of trucks on the road"
+      />
       <ul className="grid content-start gap-3">
         {live.map(({ truck, route, progress, position, colour }) => {
           const arrived = progress >= 1;
@@ -148,6 +154,12 @@ export function LiveMap({ trucks }: { trucks: LiveTruck[] }) {
                   <span>{Math.round(position.kmDone)} of {Math.round(position.kmTotal)} km · {Math.round(progress * 100)}%</span>
                   <span>{arrived ? "Waiting to unload" : hoursLeft < 1 ? `${Math.max(1, Math.round(hoursLeft * 60))} min to go` : `${hoursLeft.toFixed(1)} hrs to go`}</span>
                 </span>
+                {truck.deliveryAddress && (
+                  <span className="text-xs">
+                    <span className="text-muted-foreground">Delivering to: </span>
+                    {truck.deliveryAddress}
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground">
                   Driver {truck.driverName} · {truck.customerName}
                   {truck.sample && " · sample trip, replayed fast"}

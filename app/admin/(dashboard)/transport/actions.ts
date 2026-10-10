@@ -36,7 +36,7 @@ export async function dispatchOrder(input: z.infer<typeof dispatchSchema>) {
     const now = new Date().toISOString();
     const shipment: Omit<Shipment, "id"> = {
       orderNo: order.orderNo, customerName: order.customerName, clientPhone: order.clientPhone ?? null,
-      meters: order.meters, fabricType: order.fabricType, routeId: route.id,
+      meters: order.meters, fabricType: order.fabricType, deliveryAddress: order.deliveryAddress ?? null, routeId: route.id,
       vehicleNo: d.vehicleNo.toUpperCase(), driverName: d.driverName,
       status: "in_transit", dispatchedAt: now, deliveredAt: null,
       updates: [{ at: now, text: `Truck left the mill for ${route.destination}.`, by: user.name }],

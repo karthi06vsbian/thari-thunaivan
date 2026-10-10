@@ -12,6 +12,8 @@ export interface AppUser {
   /** WhatsApp number in international format without "+", e.g. 919876543210. */
   phone?: string | null;
   company?: string | null;
+  /** A client's last delivery address, offered again on their next order. */
+  address?: string | null;
 }
 
 export interface MachineDoc extends Machine {
@@ -39,6 +41,8 @@ export interface Order {
   clientPhone?: string | null;
   notes?: string;
   requestedAt?: string;
+  /** Where the fabric is to be delivered. */
+  deliveryAddress?: string | null;
   /** How the client chose to confirm: pay an advance online, or visit the mill and pay cash. */
   confirmMode?: "prepaid" | "cash";
   paymentStatus?: "pending" | "paid";
@@ -222,6 +226,7 @@ export interface Shipment {
   clientPhone: string | null;
   meters: number;
   fabricType: string;
+  deliveryAddress?: string | null;
   /** One of the routes in lib/transport/routes.ts. */
   routeId: string;
   vehicleNo: string;

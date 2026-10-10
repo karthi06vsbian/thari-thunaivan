@@ -1,152 +1,118 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowRight, PackagePlus } from "lucide-react";
+import { LiveMap } from "@/app/admin/(dashboard)/transport/live-map";
+import { OrderTracker } from "@/components/order-tracker";
+import { buttonVariants } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/session";
-import { addDays, formatDate, todayIso } from "@/lib/dates";
-import { db } from "@/lib/firebase/admin";
+import { formatDate } from "@/lib/dates";
 import { formatINR, formatNumber } from "@/lib/money";
-import { razorpayConfigured } from "@/lib/payments/razorpay";
+import { getClientOrders } from "@/lib/portal-data";
 import { SITE } from "@/lib/site";
-import type { Batch, Order } from "@/lib/types";
-import { signOut } from "@/lib/auth/actions";
-import { OrderForm } from "./order-form";
+import { STAGE_EMOJI, trackOrder } from "@/lib/tracking";
+import { cn } from "@/lib/utils";
 import { PayNowButton } from "./pay-now-button";
+import { PortalShell } from "./portal-shell";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: `My orders – ${SITE.name}` };
 
-const STATUS_LABEL: Record<Order["status"], string> = {
-  requested: "Waiting for confirmation",
-  rejected: "Declined",
-  confirmed: "Confirmed",
-  in_production: "In production",
-  completed: "Completed",
-};
-
 export default async function PortalPage() {
   const user = await requireRole(["client"]);
-  // Only this client's orders are ever read here.
-  const orderSnap = await db().collection("orders").where("clientUid", "==", user.uid).get();
-  const orders = orderSnap.docs
-    .map((d) => ({ id: d.id, ...d.data() }) as Order)
-    .sort((a, b) => (b.requestedAt ?? "").localeCompare(a.requestedAt ?? ""));
-  const batches = new Map<string, Batch>();
-  await Promise.all(
-    orders
-      .filter((o) => o.status === "confirmed" || o.status === "in_production" || o.status === "completed")
-      .map(async (o) => {
-        const snap = await db().collection("batches").where("orderId", "==", o.id).limit(1).get();
-        const doc = snap.docs[0];
-        if (doc) batches.set(o.id, { id: doc.id, ...doc.data() } as Batch);
-      }),
-  );
+  const orders = await getClientOrders(user.uid);
+  const tracked = orders.map((o) => ({ ...o, tracking: trackOrder(o.order, o.batch, o.bundles, o.shipment) }));
+  const active = tracked.filter((t) => !t.tracking.declined && t.tracking.current).length;
 
   return (
-    <div className="min-h-screen bg-brand-soft/40">
-      <header className="hero-weave text-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="text-lg font-semibold tracking-tight">{SITE.name}</Link>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden text-white/75 sm:inline">{user.email}</span>
-            <form action={signOut}>
-              <Button type="submit" variant="outline" size="sm" className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"><LogOut /> Sign out</Button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="rise mx-auto grid max-w-5xl gap-6 px-4 py-8">
+    <PortalShell user={user}>
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-brand">Welcome, {user.name}</h1>
-          <p className="text-sm text-muted-foreground">Place a new order or check on the ones you have with us.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-brand">Welcome, {user.name} <span aria-hidden="true">👋</span></h1>
+          <p className="text-sm text-muted-foreground">
+            {orders.length === 0
+              ? "You have no orders yet. Place your first one to get started."
+              : `${active} order${active === 1 ? "" : "s"} in progress · ${orders.length} in total`}
+          </p>
         </div>
+        <Link href="/portal/new" className={cn(buttonVariants({ size: "lg" }), "btn-shine")}>
+          <PackagePlus /> Place new order
+        </Link>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Place an order</CardTitle>
-            <CardDescription>
-              We check loom availability and confirm the price and delivery date before weaving starts.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <OrderForm
-              fabrics={SITE.fabrics.map(({ name, value, ratePerMeter }) => ({ name, value, ratePerMeter }))}
-              minDate={addDays(todayIso(), 1)}
-              defaults={{ company: user.company ?? user.name, phone: user.phone ?? "" }}
-              advancePercent={SITE.advancePercent}
-              visitSlots={SITE.visitSlots}
-              onlinePayment={razorpayConfigured()}
-              companyName={SITE.name}
-            />
-          </CardContent>
-        </Card>
+      {tracked.length === 0 && (
+        <div className="grid justify-items-center gap-3 rounded-2xl border border-dashed bg-card p-10 text-center">
+          <PackagePlus className="size-10 text-brand" aria-hidden="true" />
+          <p className="font-semibold"><span aria-hidden="true">🧺</span> No orders yet</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Choose a fabric, width and quantity. You can pay an advance online or book a visit to confirm.
+          </p>
+          <Link href="/portal/new" className={buttonVariants({ size: "lg" })}>Place an order</Link>
+        </div>
+      )}
 
-        <Card>
-          <CardHeader><CardTitle>My orders</CardTitle></CardHeader>
-          <CardContent>
-            {orders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">You have not placed any orders yet.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Fabric</TableHead>
-                    <TableHead className="text-right">Meters</TableHead>
-                    <TableHead>Needed by</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Payment / visit</TableHead>
-                    <TableHead className="text-right">Progress</TableHead>
-                    <TableHead>Expected finish</TableHead>
-                    <TableHead className="text-right">Rate</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((o) => {
-                    const batch = batches.get(o.id);
-                    const progress = batch && batch.meters > 0 ? Math.min(100, Math.round((batch.producedMeters / batch.meters) * 100)) : null;
-                    return (
-                      <TableRow key={o.id}>
-                        <TableCell className="font-medium">{o.orderNo}</TableCell>
-                        <TableCell className="capitalize">{o.fabricType} · {o.widthInches}&quot;</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatNumber(o.meters)}</TableCell>
-                        <TableCell>{formatDate(o.deadline, true)}</TableCell>
-                        <TableCell>
-                          {o.status === "requested" && o.confirmMode === "prepaid" ? "Waiting for payment" : STATUS_LABEL[o.status]}
-                        </TableCell>
-                        <TableCell>
-                          {o.confirmMode === "prepaid" ? (
-                            o.paymentStatus === "paid" ? (
-                              <span className="font-medium text-emerald-700">Advance paid · {formatINR(o.advancePaise ?? 0, { whole: true })}</span>
-                            ) : o.status === "requested" ? (
-                              <span className="flex items-center gap-2">
-                                {formatINR(o.advancePaise ?? 0, { whole: true })}
-                                <PayNowButton orderId={o.id} companyName={SITE.name} />
-                              </span>
-                            ) : (
-                              "—"
-                            )
-                          ) : o.appointment ? (
-                            <>Visit {formatDate(o.appointment.date, true)}<span className="block text-xs text-muted-foreground">{o.appointment.slot}</span></>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{progress !== null && o.status !== "confirmed" ? `${progress}%` : "—"}</TableCell>
-                        <TableCell>{batch?.endDate ? formatDate(batch.endDate, true) : "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums">{o.ratePerMeterPaise > 0 ? `${formatINR(o.ratePerMeterPaise)} / m` : "—"}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+      {tracked.map(({ order: o, shipment, tracking }) => {
+        const waitingForPayment = o.confirmMode === "prepaid" && o.paymentStatus !== "paid" && o.status === "requested";
+        return (
+          <article key={o.id} className="lift grid gap-4 rounded-2xl border bg-card p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  {o.orderNo}
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    {formatNumber(o.meters)} m <span className="capitalize">{o.fabricType}</span> · {o.widthInches}&quot;
+                  </span>
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Needed by {formatDate(o.deadline, true)}
+                  {o.ratePerMeterPaise > 0 && ` · ${formatINR(o.ratePerMeterPaise)} per meter`}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-semibold",
+                  tracking.declined ? "bg-destructive/10 text-destructive" : tracking.current ? "bg-teal-soft text-teal" : "bg-emerald-100 text-emerald-800",
+                )}
+              >
+                {tracking.declined ? "❌ Declined" : tracking.current ? `${STAGE_EMOJI[tracking.current.key]} ${tracking.current.label}` : "📦 Delivered"}
+              </span>
+            </div>
+
+            <OrderTracker tracking={tracking} compact />
+
+            {shipment?.status === "in_transit" && (
+              <div className="grid gap-2 rounded-xl border bg-brand-soft/40 p-3">
+                <p className="text-sm font-semibold text-brand"><span aria-hidden="true">🚚</span> Out for delivery – live tracking</p>
+                <LiveMap
+                  compact
+                  trucks={[{
+                    id: shipment.id, orderNo: shipment.orderNo, customerName: shipment.customerName, routeId: shipment.routeId,
+                    vehicleNo: shipment.vehicleNo, driverName: shipment.driverName, dispatchedAt: shipment.dispatchedAt,
+                    demoCycleSeconds: shipment.demoCycleSeconds ?? null, sample: !!shipment.sample,
+                    deliveryAddress: o.deliveryAddress ?? shipment.deliveryAddress ?? null,
+                  }]}
+                />
+              </div>
             )}
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+              <p className="text-sm">
+                <span className="font-medium"><span aria-hidden="true">🔔</span> Latest: </span>
+                {tracking.declined
+                  ? "Declined by the mill."
+                  : shipment?.updates.length
+                    ? [...shipment.updates].sort((a, b) => b.at.localeCompare(a.at))[0]!.text
+                    : (tracking.current?.detail ?? "Delivered and unloaded.")}
+              </p>
+              <div className="flex items-center gap-2">
+                {waitingForPayment && <PayNowButton orderId={o.id} companyName={SITE.name} />}
+                <Link href={`/portal/orders/${o.id}`} className={cn(buttonVariants({ variant: "outline" }), "group")}>
+                  Track order <ArrowRight className="transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </PortalShell>
   );
 }

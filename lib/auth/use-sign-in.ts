@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserCredential } from "firebase/auth";
+import type { StaffRole } from "@/lib/types";
 import { createSession } from "./actions";
 
 const MESSAGES: Record<string, string> = {
@@ -23,14 +24,24 @@ export function useSignIn() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function finish(signIn: () => Promise<UserCredential>, displayName?: string) {
+  /**
+   * `staffPage` is where a staff member lands after signing in; clients always go to their portal.
+   * `expectedRole` makes the sign-in fail unless the account holds that staff role.
+   */
+  async function finish(
+    signIn: () => Promise<UserCredential>,
+    displayName?: string,
+    staffPage?: string,
+    expectedRole?: StaffRole,
+  ) {
     setBusy(true);
     setError("");
     try {
       const credential = await signIn();
-      const result = await createSession(await credential.user.getIdToken(), displayName);
+      const result = await createSession(await credential.user.getIdToken(), displayName, expectedRole);
       if (!result.ok) throw new Error(result.error);
-      router.replace(result.home);
+      const toStaffPage = staffPage?.startsWith("/admin") && result.home.startsWith("/admin");
+      router.replace(toStaffPage ? staffPage! : result.home);
       router.refresh();
     } catch (e) {
       const code = (e as { code?: string }).code ?? "";

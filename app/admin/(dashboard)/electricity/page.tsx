@@ -85,7 +85,7 @@ export default async function ElectricityPage({
 
   return (
     <>
-      <PageHeader title="Electricity" description="Daily meter readings, rates and what the power costs per meter of fabric.">
+      <PageHeader title="⚡ Electricity" description="Daily meter readings, rates and what the power costs per meter of fabric.">
         <form className="flex items-end gap-2">
           <label className="grid gap-1 text-xs text-muted-foreground">
             Date

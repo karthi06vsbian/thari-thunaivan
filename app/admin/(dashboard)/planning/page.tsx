@@ -114,7 +114,7 @@ export default async function PlanningPage({
   return (
     <>
       <PageHeader
-        title="Planning"
+        title="🗓️ Planning"
         description="Pick an order to see how many machines it needs, when it will finish and what the power will cost."
       />
       <Card>
