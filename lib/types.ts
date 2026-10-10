@@ -39,6 +39,16 @@ export interface Order {
   clientPhone?: string | null;
   notes?: string;
   requestedAt?: string;
+  /** How the client chose to confirm: pay an advance online, or visit the mill and pay cash. */
+  confirmMode?: "prepaid" | "cash";
+  paymentStatus?: "pending" | "paid";
+  /** Advance asked for online, in paise. */
+  advancePaise?: number;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
+  paidAt?: string | null;
+  /** Visit booked by a cash-on-confirmation client. */
+  appointment?: { date: IsoDate; slot: string } | null;
 }
 
 export type BatchStatus = "pending" | "planned" | "in_progress" | "completed";

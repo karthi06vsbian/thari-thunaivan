@@ -8,10 +8,12 @@ import { requireRole } from "@/lib/auth/session";
 import { addDays, formatDate, todayIso } from "@/lib/dates";
 import { db } from "@/lib/firebase/admin";
 import { formatINR, formatNumber } from "@/lib/money";
+import { razorpayConfigured } from "@/lib/payments/razorpay";
 import { SITE } from "@/lib/site";
 import type { Batch, Order } from "@/lib/types";
 import { signOut } from "@/lib/auth/actions";
 import { OrderForm } from "./order-form";
+import { PayNowButton } from "./pay-now-button";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: `My orders – ${SITE.name}` };
@@ -71,9 +73,13 @@ export default async function PortalPage() {
           </CardHeader>
           <CardContent>
             <OrderForm
-              fabrics={SITE.fabrics.map(({ name, value }) => ({ name, value }))}
+              fabrics={SITE.fabrics.map(({ name, value, ratePerMeter }) => ({ name, value, ratePerMeter }))}
               minDate={addDays(todayIso(), 1)}
               defaults={{ company: user.company ?? user.name, phone: user.phone ?? "" }}
+              advancePercent={SITE.advancePercent}
+              visitSlots={SITE.visitSlots}
+              onlinePayment={razorpayConfigured()}
+              companyName={SITE.name}
             />
           </CardContent>
         </Card>
@@ -92,6 +98,7 @@ export default async function PortalPage() {
                     <TableHead className="text-right">Meters</TableHead>
                     <TableHead>Needed by</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Payment / visit</TableHead>
                     <TableHead className="text-right">Progress</TableHead>
                     <TableHead>Expected finish</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
@@ -107,7 +114,27 @@ export default async function PortalPage() {
                         <TableCell className="capitalize">{o.fabricType} · {o.widthInches}&quot;</TableCell>
                         <TableCell className="text-right tabular-nums">{formatNumber(o.meters)}</TableCell>
                         <TableCell>{formatDate(o.deadline, true)}</TableCell>
-                        <TableCell>{STATUS_LABEL[o.status]}</TableCell>
+                        <TableCell>
+                          {o.status === "requested" && o.confirmMode === "prepaid" ? "Waiting for payment" : STATUS_LABEL[o.status]}
+                        </TableCell>
+                        <TableCell>
+                          {o.confirmMode === "prepaid" ? (
+                            o.paymentStatus === "paid" ? (
+                              <span className="font-medium text-emerald-700">Advance paid · {formatINR(o.advancePaise ?? 0, { whole: true })}</span>
+                            ) : o.status === "requested" ? (
+                              <span className="flex items-center gap-2">
+                                {formatINR(o.advancePaise ?? 0, { whole: true })}
+                                <PayNowButton orderId={o.id} companyName={SITE.name} />
+                              </span>
+                            ) : (
+                              "—"
+                            )
+                          ) : o.appointment ? (
+                            <>Visit {formatDate(o.appointment.date, true)}<span className="block text-xs text-muted-foreground">{o.appointment.slot}</span></>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">{progress !== null && o.status !== "confirmed" ? `${progress}%` : "—"}</TableCell>
                         <TableCell>{batch?.endDate ? formatDate(batch.endDate, true) : "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">{o.ratePerMeterPaise > 0 ? `${formatINR(o.ratePerMeterPaise)} / m` : "—"}</TableCell>

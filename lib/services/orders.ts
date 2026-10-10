@@ -1,4 +1,5 @@
 import { db } from "@/lib/firebase/admin";
+import type { Batch, Order } from "@/lib/types";
 
 const FIRST_ORDER_NUMBER = 1007;
 
@@ -17,4 +18,15 @@ export async function nextOrderNumbers(): Promise<{ orderNo: string }> {
     return next;
   });
   return { orderNo: `ORD-${n}` };
+}
+
+/** The empty batch that makes a confirmed order show up in Planning. */
+export function newBatchFor(order: Order): Omit<Batch, "id"> {
+  return {
+    batchNo: batchNoFor(order.orderNo), orderId: order.id, orderNo: order.orderNo,
+    fabricType: order.fabricType, widthInches: order.widthInches,
+    meters: order.meters, producedMeters: 0, status: "pending",
+    machineIds: [], startDate: null, endDate: null, hoursPerDay: null, planId: null,
+    materialCostPaise: 0, labourCostPaise: 0, overheadCostPaise: 0, powerCostPaise: 0,
+  };
 }

@@ -42,6 +42,16 @@ export default async function OrdersPage() {
                     {formatNumber(o.meters)} m <span className="capitalize">{o.fabricType}</span> at {o.widthInches}&quot; · needed by{" "}
                     {formatDate(o.deadline, true)}
                   </p>
+                  {o.confirmMode === "prepaid" && (
+                    <p className="mt-1 font-medium text-amber-700">
+                      Prepaid · waiting for the client to pay {formatINR(o.advancePaise ?? 0, { whole: true })} advance online
+                    </p>
+                  )}
+                  {o.appointment && (
+                    <p className="mt-1 font-medium text-teal">
+                      Cash on confirmation · visit booked {formatDate(o.appointment.date, true)}, {o.appointment.slot}
+                    </p>
+                  )}
                   {o.notes && <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{o.notes}</p>}
                 </div>
                 {canPlan && <RequestActions orderId={o.id} />}
