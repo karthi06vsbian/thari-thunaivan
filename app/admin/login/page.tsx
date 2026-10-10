@@ -71,18 +71,56 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="hero-weave relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      <div aria-hidden="true" className="blob absolute -top-24 right-[-6rem] size-96 rounded-full bg-teal/30 blur-3xl" />
-      <div aria-hidden="true" className="blob absolute bottom-[-8rem] left-[-4rem] size-80 rounded-full bg-white/10 blur-3xl [animation-delay:-4s]" />
-      <div className="rise relative grid w-full max-w-sm gap-4">
-        <Card className="shadow-2xl shadow-black/30">
-          <CardHeader className="pb-2 text-center">
-            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand">
-              <ShieldCheck className="size-6" aria-hidden="true" />
+    <main className="min-h-screen w-full lg:grid lg:grid-cols-2 bg-brand-soft/20">
+      <div className="hidden flex-col justify-between bg-brand-dark p-10 text-white lg:flex relative overflow-hidden">
+        <div className="hero-weave absolute inset-0 opacity-40"></div>
+        <div aria-hidden="true" className="blob absolute -top-24 right-[-6rem] size-96 rounded-full bg-teal/30 blur-3xl" />
+        <div aria-hidden="true" className="blob absolute bottom-[-8rem] left-[-4rem] size-80 rounded-full bg-white/10 blur-3xl [animation-delay:-4s]" />
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 font-bold text-2xl">
+            <span className="grid size-10 place-items-center rounded-xl bg-white/10">
+              <ShieldCheck className="size-5" />
             </span>
-            <CardTitle className="mt-2 text-2xl font-bold tracking-tight text-brand">{SITE.name}</CardTitle>
-            <p className="text-xs font-medium text-muted-foreground">தறி துணைவன் · Admin access</p>
-          </CardHeader>
+            {SITE.name}
+          </div>
+        </div>
+        
+        <div className="relative z-10 max-w-md">
+          <h1 className="text-3xl font-bold tracking-tight mb-4">Staff Portal</h1>
+          <p className="text-white/80 leading-relaxed mb-8">
+            Access the mill dashboard to manage looms, track orders, monitor quality, and review shift output.
+          </p>
+          <div className="grid gap-4 border-t border-white/10 pt-8 text-sm text-white/70">
+            <p className="flex items-center gap-2">
+              <Crown className="size-4" /> Owner: Full dashboard and costs
+            </p>
+            <p className="flex items-center gap-2">
+              <UserCog className="size-4" /> Manager: Planning and orders
+            </p>
+            <p className="flex items-center gap-2">
+              <HardHat className="size-4" /> Supervisor: Production logs
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex min-h-screen items-center justify-center p-4 lg:p-8 relative">
+        <div className="absolute inset-0 bg-brand-soft/20 lg:hidden hero-weave opacity-10"></div>
+        <div className="rise relative w-full max-w-sm grid gap-6">
+          <div className="lg:hidden text-center mb-4">
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand mb-3">
+              <ShieldCheck className="size-6" />
+            </span>
+            <h1 className="text-2xl font-bold tracking-tight text-brand">{SITE.name}</h1>
+            <p className="text-xs font-medium text-muted-foreground mt-1">தறி துணைவன் · Admin access</p>
+          </div>
+
+          <Card className="border-0 shadow-none lg:shadow-xl lg:border lg:bg-card bg-transparent">
+            <CardHeader className="hidden lg:block pb-2 text-center">
+              <CardTitle className="text-xl font-bold tracking-tight text-brand">Sign In</CardTitle>
+              <p className="text-xs font-medium text-muted-foreground mt-1">தறி துணைவன் · Admin access</p>
+            </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="grid gap-4">
               <fieldset className="grid gap-2">
@@ -168,7 +206,8 @@ export default function AdminLoginPage() {
           {" · "}
           <Link href="/" className="underline-offset-4 hover:underline">Back to Mill Website</Link>
         </p>
-      </div>
+            </div>
+    </div>
     </main>
   );
 }

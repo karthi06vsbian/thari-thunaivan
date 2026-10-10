@@ -295,31 +295,76 @@ export default function HomePage() {
         <SiteReviews />
       </main>
 
-      <footer className="bg-brand-dark text-white">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 text-sm sm:grid-cols-3">
-          <div>
-            <p className="text-lg font-bold">{SITE.name}</p>
-            <p className="mt-1 text-white/70">Weaving mill · 50 looms</p>
+            <footer className="bg-brand-dark text-white border-t border-brand/20">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 text-sm sm:grid-cols-2 md:grid-cols-4">
+          <div className="flex flex-col gap-4">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="text-xl font-bold tracking-tight">{SITE.name}</span>
+            </Link>
+            <p className="text-white/70 leading-relaxed">
+              Premium quality weaving mill with 50 operational looms. We deliver made-to-order fabrics with precision, trust, and on-time delivery.
+            </p>
           </div>
-          <nav className="grid content-start gap-1 text-white/70" aria-label="Footer">
-            <a href="#about" className="hover:text-white">About</a>
-            <a href="#fabrics" className="hover:text-white">Products</a>
-            <a href="#process" className="hover:text-white">How we work</a>
-            <a href="#gallery" className="hover:text-white">Gallery</a>
-            <a href="#reviews" className="hover:text-white">Reviews</a>
-            <a href="#enquiry" className="hover:text-white">Get a quote</a>
-          </nav>
-          <div className="grid content-start gap-1 text-white/70 sm:justify-items-end">
-            {contacts.map((c) => (
-              <p key={c.label}>{c.value}</p>
-            ))}
-            <Link href="/portal" className="underline-offset-4 hover:text-white hover:underline">Client login</Link>
-            <Link href="/admin" className="underline-offset-4 hover:text-white hover:underline">Staff login</Link>
+          
+          <div>
+            <h3 className="mb-4 text-base font-semibold text-white">Quick Links</h3>
+            <nav className="grid gap-3 text-white/70" aria-label="Footer Navigation">
+              <a href="#about" className="transition-colors hover:text-white">About Us</a>
+              <a href="#fabrics" className="transition-colors hover:text-white">Our Products</a>
+              <a href="#process" className="transition-colors hover:text-white">How We Work</a>
+              <a href="#gallery" className="transition-colors hover:text-white">Gallery</a>
+              <a href="#reviews" className="transition-colors hover:text-white">Client Reviews</a>
+            </nav>
+          </div>
+
+          <div>
+            <h3 className="mb-4 text-base font-semibold text-white">Contact Us</h3>
+            <div className="grid gap-3 text-white/70">
+              {contacts.map((c) => (
+                <div key={c.label}>
+                  <span className="block text-xs font-medium text-white/40 uppercase tracking-wider">{c.label}</span>
+                  {c.href ? (
+                    <a href={c.href} className="transition-colors hover:text-white">{c.value}</a>
+                  ) : (
+                    <span>{c.value}</span>
+                  )}
+                </div>
+              ))}
+              {contacts.length === 0 && (
+                <p className="italic text-white/50">Contact info coming soon</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="mb-4 text-base font-semibold text-white">Portals</h3>
+            <div className="grid gap-3 text-white/70">
+              <Link href="/portal" className="inline-flex items-center gap-2 transition-colors hover:text-white">
+                Client Portal
+              </Link>
+              <Link href="/admin" className="inline-flex items-center gap-2 transition-colors hover:text-white">
+                Staff Dashboard
+              </Link>
+              <div className="mt-4">
+                 <a href="#enquiry" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'w-full bg-transparent text-white border-white/20 hover:bg-white/10 hover:text-white')}>
+                  Get a quote
+                 </a>
+              </div>
+            </div>
           </div>
         </div>
-        <p className="border-t border-white/15 px-4 py-4 text-center text-xs text-white/60">
-          © {new Date().getFullYear()} {SITE.name}. All rights reserved.
-        </p>
+        
+        <div className="border-t border-white/10 bg-black/20">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-xs text-white/60 sm:flex-row">
+            <p>
+              &copy; {new Date().getFullYear()} {SITE.name}. All rights reserved.
+            </p>
+            <div className="flex gap-4">
+              <a href="#" className="transition-colors hover:text-white">Privacy Policy</a>
+              <a href="#" className="transition-colors hover:text-white">Terms of Service</a>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );
