@@ -154,7 +154,7 @@
   50% { transform: translate3d(0, -18px, 0) scale(1.05); }
 }
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes shine {
@@ -174,16 +174,16 @@
     repeating-linear-gradient(45deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 16px),
     repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 16px),
     linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 70%);
-  animation: weave-drift 14s linear infinite;
+  /* Static on purpose: animating a full-screen background repaints it on every frame. */
 }
-.blob { animation: float-slow 9s ease-in-out infinite; }
-.rise { animation: rise-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.blob { }
+.rise { animation: rise-in 0.22s ease-out both; }
 
 /* Scroll reveal: elements start hidden only once the script has marked them. */
-.reveal { transition: opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
-.reveal[data-reveal="hidden"] { opacity: 0; transform: translateY(28px); }
+.reveal { transition: opacity 0.35s ease-out, transform 0.35s ease-out; }
+.reveal[data-reveal="hidden"] { opacity: 0; transform: translateY(14px); }
 
-.lift { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+.lift { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
 .lift:hover { transform: translateY(-6px); box-shadow: 0 18px 40px -18px rgb(113 75 103 / 0.45); border-color: color-mix(in oklab, var(--brand) 40%, transparent); }
 
 .btn-shine { position: relative; overflow: hidden; }
@@ -194,9 +194,9 @@
 }
 .btn-shine:hover::after { animation: shine 0.8s ease; }
 
-.marquee { animation: marquee 28s linear infinite; }
+.marquee { animation: marquee 28s linear infinite; will-change: transform; }
 .marquee:hover { animation-play-state: paused; }
-.marquee-reverse { animation: marquee 34s linear infinite reverse; }
+.marquee-reverse { animation: marquee 34s linear infinite reverse; will-change: transform; }
 .marquee-reverse:hover { animation-play-state: paused; }
 .marquee-slow { animation-duration: 40s; }
 .pulse-dot { animation: pulse-ring 1.8s ease-out infinite; }

@@ -48,7 +48,7 @@ export function RequestActions({ orderId }: { orderId: string }) {
           if (window.confirm(`Decline ${orderId}?`)) act(() => rejectOrder(orderId));
         }}
       >
-        Decline
+        Reject
       </Button>
     </div>
   );

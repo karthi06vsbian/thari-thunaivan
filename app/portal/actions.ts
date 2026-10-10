@@ -11,6 +11,7 @@ import { formatINR, rupeesToPaise } from "@/lib/money";
 import {
   advanceFor,
   createRazorpayOrder,
+  getRazorpaySecret,
   isValidPaymentSignature,
   RAZORPAY_KEY_ID,
   razorpayConfigured,
@@ -179,7 +180,7 @@ export async function confirmPayment(input: z.infer<typeof paymentSchema>) {
     const p = paymentSchema.parse(input);
     const order = await ownOrder(p.orderId, user);
     if (order.paymentStatus === "paid") return { message: `Order ${order.orderNo} is already confirmed.` };
-    const secret = process.env.RAZORPAY_KEY_SECRET;
+    const secret = getRazorpaySecret();
     if (
       !secret ||
       order.razorpayOrderId !== p.razorpayOrderId ||

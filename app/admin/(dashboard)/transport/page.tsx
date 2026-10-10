@@ -8,7 +8,8 @@ import { addDays, formatDate, todayIso } from "@/lib/dates";
 import { formatNumber } from "@/lib/money";
 import { getShipments } from "@/lib/transport/data";
 import { routeById, routeKm, ROUTES } from "@/lib/transport/routes";
-import { LiveMap, type LiveTruck } from "./live-map";
+import { LazyLiveMap as LiveMap } from "@/components/lazy-live-map";
+import type { LiveTruck } from "./live-map";
 import { DispatchForm, ShipmentControls } from "./transport-forms";
 
 const DAY_MS = 86_400_000;

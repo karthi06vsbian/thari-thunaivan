@@ -39,7 +39,7 @@ export function Reveal({
     <div
       ref={ref}
       data-reveal={state === "hidden" ? "hidden" : undefined}
-      style={{ transitionDelay: `${delay}ms` }}
+      style={{ transitionDelay: `${Math.min(delay, 300) / 2}ms` }}
       className={cn("reveal", className)}
     >
       {children}

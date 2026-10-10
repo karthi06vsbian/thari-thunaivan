@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, PackagePlus } from "lucide-react";
-import { LiveMap } from "@/app/admin/(dashboard)/transport/live-map";
+import { LazyLiveMap as LiveMap } from "@/components/lazy-live-map";
 import { OrderTracker } from "@/components/order-tracker";
 import { buttonVariants } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/session";

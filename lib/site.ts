@@ -22,10 +22,10 @@ export const SITE = {
    * public/products; swap the illustrations for real photos by replacing those files.
    */
   fabrics: [
-    { name: "Cotton", value: "cotton", ratePerMeter: 92, image: "/products/cotton.svg", detail: "Shirting, sheeting and grey fabric in standard and wide widths." },
-    { name: "Polyester", value: "polyester", ratePerMeter: 84, image: "/products/polyester.svg", detail: "Durable polyester weaves for garments and furnishing." },
-    { name: "Blends", value: "blend", ratePerMeter: 89, image: "/products/blend.svg", detail: "Poly-cotton and other blended yarn fabrics." },
-    { name: "Silk", value: "silk", ratePerMeter: 215, image: "/products/silk.svg", detail: "Narrow-width silk woven on dedicated looms." },
+    { name: "Cotton", value: "cotton", ratePerMeter: 92, image: "/products/cotton.jpg", detail: "Shirting, sheeting and grey fabric in standard and wide widths." },
+    { name: "Polyester", value: "polyester", ratePerMeter: 84, image: "/products/polyester.jpg", detail: "Durable polyester weaves for garments and furnishing." },
+    { name: "Blends", value: "blend", ratePerMeter: 89, image: "/products/blend.jpg", detail: "Poly-cotton and other blended yarn fabrics." },
+    { name: "Silk", value: "silk", ratePerMeter: 215, image: "/products/silk.jpg", detail: "Narrow-width silk woven on dedicated looms." },
   ],
   /**
    * Gallery tiles on the website. `photo` is a file in public/gallery; a tile without a

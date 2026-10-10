@@ -8,14 +8,23 @@ import type { AppUser, Role } from "@/lib/types";
 export const SESSION_COOKIE = "__session";
 export const SESSION_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000;
 
+// A person's profile (name, role) is remembered briefly so every page view does not re-read it.
+// A role change therefore takes up to a minute to apply.
+const PROFILE_TTL_MS = 60_000;
+const profiles = new Map<string, { user: AppUser; at: number }>();
+
 export const getSessionUser = cache(async (): Promise<AppUser | null> => {
   const cookie = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!cookie) return null;
   try {
     const decoded = await adminAuth().verifySessionCookie(cookie);
+    const cached = profiles.get(decoded.uid);
+    if (cached && Date.now() - cached.at < PROFILE_TTL_MS) return cached.user;
     const snap = await db().collection("users").doc(decoded.uid).get();
     if (!snap.exists) return null;
-    return { uid: decoded.uid, ...(snap.data() as Omit<AppUser, "uid">) };
+    const user = { uid: decoded.uid, ...(snap.data() as Omit<AppUser, "uid">) };
+    profiles.set(decoded.uid, { user, at: Date.now() });
+    return user;
   } catch {
     return null;
   }
