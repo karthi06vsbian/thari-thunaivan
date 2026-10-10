@@ -23,5 +23,5 @@ export const SITE = {
    * Owner: 918778606059 — this is also the number used for the owner bot menu.
    * Override via NEXT_PUBLIC_COMPANY_WHATSAPP env var for production.
    */
-  whatsapp: process.env.NEXT_PUBLIC_COMPANY_WHATSAPP ?? "918778606059",
+  whatsapp: process.env.NEXT_PUBLIC_COMPANY_WHATSAPP ?? "916383263198",
 };
