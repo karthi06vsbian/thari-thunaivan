@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LiveMap } from "@/app/admin/(dashboard)/transport/live-map";
+import { LazyLiveMap as LiveMap } from "@/components/lazy-live-map";
 import { OrderTracker } from "@/components/order-tracker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";

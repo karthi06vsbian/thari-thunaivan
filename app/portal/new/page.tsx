@@ -21,14 +21,15 @@ export default async function NewOrderPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Order details</CardTitle>
+          <CardTitle>Four quick steps</CardTitle>
           <CardDescription>
-            Tell us the fabric, size and quantity. We check loom availability and confirm the price and delivery date before weaving starts.
+            Pick the fabric, give the size and quantity, tell us where and when, then confirm.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <OrderForm
-            fabrics={SITE.fabrics.map(({ name, value, ratePerMeter }) => ({ name, value, ratePerMeter }))}
+            fabrics={SITE.fabrics.map(({ name, value, ratePerMeter, image, detail }) => ({ name, value, ratePerMeter, image, detail }))}
+            today={todayIso()}
             minDate={addDays(todayIso(), 1)}
             defaults={{ company: user.company ?? user.name, phone: user.phone ?? "", address: user.address ?? "" }}
             advancePercent={SITE.advancePercent}
