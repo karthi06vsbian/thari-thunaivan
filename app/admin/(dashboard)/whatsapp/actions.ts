@@ -42,3 +42,16 @@ export async function triggerAtRisk() {
     };
   });
 }
+
+export async function sendClientWhatsApp(phone: string, message: string) {
+  return run(async () => {
+    await assertRole(ACCESS.whatsapp);
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (!cleanPhone || cleanPhone.length < 10) throw new Error("Enter a valid phone number with country code (e.g. 917904348506)");
+    if (!message.trim()) throw new Error("Message cannot be empty");
+    const { sendToClient } = await import("@/lib/whatsapp/send");
+    await sendToClient(cleanPhone, message.trim(), "manual-client-update");
+    revalidatePath("/admin/whatsapp");
+    return { message: `WhatsApp message queued for +${cleanPhone}` };
+  });
+}
