@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Package,
   ScanLine,
+  Truck,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ const ICONS = {
   planning: CalendarRange,
   logs: ClipboardList,
   quality: ScanLine,
+  transport: Truck,
   electricity: Zap,
   orders: Package,
   whatsapp: MessageCircle,

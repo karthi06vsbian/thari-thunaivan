@@ -45,6 +45,7 @@ npm run seed -- --force  # wipe and reseed (emulators must be running: npm run e
 | `/admin/planning` | Pick an order → "N of 50 machines needed, finishes on …, est. kWh ≈ ₹…", the chosen machines, a day-by-day table of machines used and electricity, alternatives, and a machines × days timeline. Nothing is assigned until **Apply plan** is clicked |
 | `/admin/production-logs` | Shift-wise entry grid for all machines (running hours, output, breakdown hours) with **Copy yesterday** |
 | `/admin/quality` | Quality check: create QR labels for a batch's bundles, scan a label (or type the bundle number) to open its page, enter length, width and test results; the owner gets a WhatsApp message and the owner and manager see it on the Overview |
+| `/admin/transport` | Transport: orders going out, live truck map on sample routes (position estimated from time since dispatch, no GPS yet), days to complete each delivery, route updates, dispatch and mark-delivered |
 | `/admin/electricity` | Daily meter reading entry, rate settings with history, KPIs, 30-day charts, top 10 machines by energy per meter, monthly summary for checking the bill |
 | `/admin/orders` | Batches with machines, progress, power cost, cost per meter and profit |
 | `/` | Public company website with an enquiry form |

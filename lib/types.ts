@@ -207,3 +207,30 @@ export interface Bundle {
   checkedBy: string | null;
   checkedAt: string | null;
 }
+
+export interface ShipmentUpdate {
+  at: string;
+  text: string;
+  by: string;
+}
+
+/** A truck load going out to a customer. */
+export interface Shipment {
+  id: string;
+  orderNo: string;
+  customerName: string;
+  clientPhone: string | null;
+  meters: number;
+  fabricType: string;
+  /** One of the routes in lib/transport/routes.ts. */
+  routeId: string;
+  vehicleNo: string;
+  driverName: string;
+  status: "in_transit" | "delivered";
+  dispatchedAt: string;
+  deliveredAt: string | null;
+  updates: ShipmentUpdate[];
+  /** Demo data: the trip replays in a loop so there is always a moving truck to show. */
+  sample?: boolean;
+  demoCycleSeconds?: number | null;
+}

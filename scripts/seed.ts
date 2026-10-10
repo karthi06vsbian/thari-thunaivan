@@ -13,6 +13,7 @@ import { addDays, isWorkingDay } from "@/lib/planning/calendar";
 import { dailyElectricityCost, estimateUnits } from "@/lib/planning/energy";
 import type { ExistingAllocation, PlanInputs, ShiftSettings } from "@/lib/planning/types";
 import { planDocFrom } from "@/lib/services/plans";
+import { sampleShipments } from "@/lib/transport/data";
 import {
   commitInChunks,
   recomputeBatchPower,
@@ -264,6 +265,10 @@ async function main() {
   for (const m of machines) {
     const { id, ...data } = m;
     writes.push((b) => b.set(db().collection("machines").doc(id), data));
+  }
+  for (const shipment of sampleShipments(Date.now())) {
+    const { id, ...data } = shipment;
+    writes.push((b) => b.set(db().collection("shipments").doc(id), data));
   }
   await commitInChunks(writes);
   console.log(`Wrote ${writes.length} documents. Computing energy, efficiency and batch costs...`);

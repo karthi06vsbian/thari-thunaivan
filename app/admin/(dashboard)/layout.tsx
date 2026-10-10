@@ -15,6 +15,7 @@ const NAV: (NavItem & { roles: Role[] })[] = [
   { href: "/admin/planning", label: "Planning", icon: "planning", roles: ACCESS.planning },
   { href: "/admin/production-logs", label: "Production logs", icon: "logs", roles: ACCESS.productionLogs },
   { href: "/admin/quality", label: "Quality check", icon: "quality", roles: ACCESS.quality },
+  { href: "/admin/transport", label: "Transport", icon: "transport", roles: ACCESS.transport },
   { href: "/admin/electricity", label: "Electricity", icon: "electricity", roles: ACCESS.electricity },
   { href: "/admin/orders", label: "Orders & costing", icon: "orders", roles: ACCESS.orders },
   { href: "/admin/whatsapp", label: "WhatsApp", icon: "whatsapp", roles: ACCESS.whatsapp },
