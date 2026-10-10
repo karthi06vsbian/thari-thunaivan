@@ -180,9 +180,17 @@ export default function CustomerLoginPage() {
             )}
           </CardContent>
         </Card>
-        <p className="text-center text-sm text-muted-foreground">
-          <Link href="/" className="underline-offset-4 hover:underline">← Back to website</Link>
-        </p>
+        <div className="text-center text-sm text-muted-foreground space-y-2">
+          <p>
+            Mill staff or owner?{" "}
+            <Link href="/admin/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+              Staff login →
+            </Link>
+          </p>
+          <p>
+            <Link href="/" className="underline-offset-4 hover:underline">← Back to website</Link>
+          </p>
+        </div>
       </div>
     </main>
   );
