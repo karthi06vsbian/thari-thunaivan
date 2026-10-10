@@ -9,7 +9,7 @@ const GRAPH = "https://graph.facebook.com/v21.0";
  * what was sent from the admin panel. Without WHATSAPP_TOKEN the
  * message is only recorded (this is how local development works).
  */
-export async function sendWhatsApp(to: string, body: string, kind: string): Promise<void> {
+export async function sendWhatsApp(to: string, body: string, kind: string): Promise<string> {
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   let status = "not_configured";
@@ -26,6 +26,7 @@ export async function sendWhatsApp(to: string, body: string, kind: string): Prom
     }
   }
   await db().collection("whatsappOutbox").add({ to, body, kind, status, at: new Date().toISOString() });
+  return status;
 }
 
 /**

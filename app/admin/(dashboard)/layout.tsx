@@ -21,7 +21,7 @@ const NAV: (NavItem & { roles: Role[] })[] = [
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/admin/login");
   if (user.role === "client") redirect("/portal");
   const items = NAV.filter((n) => n.roles.includes(user.role)).map(({ href, label, icon }) => ({ href, label, icon }));
 

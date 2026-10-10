@@ -6,18 +6,21 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   sendPasswordResetEmail,
+  signInWithCustomToken,
   signInWithEmailAndPassword,
   signInWithPopup,
   updateProfile,
 } from "firebase/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { demoClientLogin, requestLoginCode, verifyLoginCode } from "@/lib/auth/phone-actions";
 import { useSignIn } from "@/lib/auth/use-sign-in";
 import { clientAuth } from "@/lib/firebase/client";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { CLIENTS } from "@/lib/whatsapp/numbers";
 
 function GoogleMark() {
   return (
@@ -30,81 +33,59 @@ function GoogleMark() {
   );
 }
 
-const ROLES = [
-  {
-    id: "owner",
-    label: "Owner",
-    icon: "👑",
-    title: "Mill Owner Login",
-    description: "Full oversight: 50 looms, electricity billing, planning & WhatsApp reports.",
-    demoEmail: "owner@tharithunaivan.com",
-    demoPassword: "password123",
-  },
-  {
-    id: "manager",
-    label: "Manager",
-    icon: "👔",
-    title: "Production Manager Login",
-    description: "Loom capacity allocation, order batching & floor scheduling.",
-    demoEmail: "manager@tharithunaivan.com",
-    demoPassword: "password123",
-  },
-  {
-    id: "staff",
-    label: "Staff",
-    icon: "🛠️",
-    title: "Floor Supervisor Login",
-    description: "Shift production logs, running/idle hours & meters woven.",
-    demoEmail: "staff@tharithunaivan.com",
-    demoPassword: "password123",
-  },
-  {
-    id: "transport",
-    label: "Transport",
-    icon: "🚚",
-    title: "Transport & Logistics Login",
-    description: "Orders ready for dispatch, delivery tracking & customer details.",
-    demoEmail: "transport@tharithunaivan.com",
-    demoPassword: "password123",
-  },
-  {
-    id: "customer",
-    label: "Customer",
-    icon: "🛒",
-    title: "Customer & Buyer Portal",
-    description: "Place custom fabric orders and track weaving progress.",
-    demoEmail: "client@tharithunaivan.com",
-    demoPassword: "password123",
-  },
-];
-
-type RoleId = "owner" | "manager" | "staff" | "transport" | "customer";
+type Method = "phone" | "email";
 type Mode = "login" | "register";
 
-export default function LoginPage() {
+// The mill's registered client number, used for the 1-click demo sign in.
+const DEMO_CLIENT_PHONE = CLIENTS[0]?.phone ?? "";
+
+export default function ClientLoginPage() {
   const { busy, error, setError, finish } = useSignIn();
-  const [selectedRole, setSelectedRole] = useState<RoleId>("owner");
+  const [method, setMethod] = useState<Method>("phone");
   const [mode, setMode] = useState<Mode>("login");
+  const [phone, setPhone] = useState(DEMO_CLIENT_PHONE);
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [sending, setSending] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("owner@tharithunaivan.com");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
 
-  const activeRole = ROLES.find((r) => r.id === selectedRole) ?? ROLES[0]!;
-
-  function pickRole(roleId: RoleId) {
-    setSelectedRole(roleId);
-    const r = ROLES.find((item) => item.id === roleId);
-    if (r) {
-      setEmail(r.demoEmail);
-      setPassword(r.demoPassword);
-    }
-    setMode("login");
+  function reset() {
     setError("");
     setNotice("");
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  /** Signs in with a token the server issued for a verified phone number. */
+  function signInWithToken(getToken: () => Promise<{ ok: true; token: string } | { ok: false; error: string }>) {
+    reset();
+    void finish(async () => {
+      const result = await getToken();
+      if (!result.ok) throw new Error(result.error);
+      return signInWithCustomToken(clientAuth(), result.token);
+    });
+  }
+
+  async function sendCode() {
+    reset();
+    setSending(true);
+    const result = await requestLoginCode(phone);
+    setSending(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setCodeSent(true);
+    setCode(result.devCode ?? "");
+    setNotice(
+      result.devCode
+        ? `Test mode: your code is ${result.devCode}.`
+        : "We sent a 6-digit code to your WhatsApp. Enter it below.",
+    );
+  }
+
+  function onEmailSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice("");
     if (mode === "login") {
@@ -118,26 +99,21 @@ export default function LoginPage() {
     }, name);
   }
 
-  function oneClickLogin() {
-    setEmail(activeRole.demoEmail);
-    setPassword(activeRole.demoPassword);
-    void finish(() => signInWithEmailAndPassword(clientAuth(), activeRole.demoEmail, activeRole.demoPassword));
-  }
-
   async function forgotPassword() {
-    setError("");
-    setNotice("");
+    reset();
     if (!email) {
-      setError("Type your email above first, then click “Forgot password?”.");
+      setError("Type your email above first, then click “Forgot?”.");
       return;
     }
     try {
       await sendPasswordResetEmail(clientAuth(), email);
     } catch {
-      // Ignored for security
+      // Same message either way, so this cannot be used to check who has an account.
     }
     setNotice("If that email has an account, a password reset link is on its way.");
   }
+
+  const working = busy || sending;
 
   return (
     <main className="hero-weave relative flex min-h-screen items-center justify-center overflow-hidden p-4">
@@ -147,152 +123,168 @@ export default function LoginPage() {
         <Card className="shadow-2xl shadow-black/30">
           <CardHeader className="pb-3 text-center">
             <CardTitle className="text-2xl font-bold tracking-tight text-brand">{SITE.name}</CardTitle>
-            <p className="text-xs text-muted-foreground font-medium">தறி துணைவன் · Weaving Mill Management System</p>
+            <p className="text-xs font-medium text-muted-foreground">தறி துணைவன் · Client login</p>
           </CardHeader>
 
           <CardContent className="grid gap-4">
-            {/* Role Switcher Tabs */}
-            <div className="grid gap-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">Select Role to Sign In</Label>
-              <div className="grid grid-cols-5 gap-1 rounded-xl bg-muted p-1">
-                {ROLES.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => pickRole(r.id as RoleId)}
-                    className={cn(
-                      "flex flex-col items-center justify-center rounded-lg py-1.5 px-1 text-xs font-medium transition-all duration-200",
-                      selectedRole === r.id
-                        ? "scale-105 bg-brand font-semibold text-white shadow-md"
-                        : "text-muted-foreground hover:bg-brand-soft hover:text-brand",
-                    )}
-                  >
-                    <span className="text-base">{r.icon}</span>
-                    <span className="truncate text-[11px] leading-tight mt-0.5">{r.label}</span>
-                  </button>
-                ))}
-              </div>
+            <div className="rounded-lg border border-teal/30 bg-teal-soft px-3 py-2 text-xs">
+              <p className="font-semibold text-foreground">🛒 Customer &amp; Buyer Portal</p>
+              <p className="mt-1 leading-relaxed text-muted-foreground">
+                Sign in with your mobile number to order fabric and track weaving progress.
+              </p>
             </div>
 
-            {/* Active Role Description Banner */}
-            <div key={selectedRole} className="rise rounded-lg border border-teal/30 bg-teal-soft px-3 py-2 text-xs">
-              <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                <span>{activeRole.icon}</span>
-                <span>{activeRole.title}</span>
-              </div>
-              <p className="mt-1 text-muted-foreground leading-relaxed">{activeRole.description}</p>
-            </div>
-
-            {/* Quick 1-Click Login Button */}
-            <Button
-              type="button"
-              variant="default"
-              size="lg"
-              disabled={busy}
-              onClick={oneClickLogin}
-              className="btn-shine w-full font-semibold shadow"
-            >
-              ⚡ 1-Click Sign In as {activeRole.label}
-            </Button>
-
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="h-px flex-1 bg-border" />
-              <span>or sign in with credentials</span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-
-            {/* Customer Register Toggle (Only shown for Customer role) */}
-            {selectedRole === "customer" && (
-              <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist">
-                {(["login", "register"] as const).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => {
-                      setMode(m);
-                      setError("");
-                      setNotice("");
-                    }}
-                    className={cn(
-                      "rounded-md px-3 py-1 text-xs font-medium",
-                      mode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
-                    )}
-                  >
-                    {m === "login" ? "Sign In" : "Register New Account"}
-                  </button>
-                ))}
-              </div>
+            {DEMO_CLIENT_PHONE && (
+              <Button
+                type="button"
+                size="lg"
+                disabled={working}
+                onClick={() => signInWithToken(demoClientLogin)}
+                className="btn-shine w-full font-semibold shadow"
+              >
+                ⚡ 1-Click Sign In as Client (+{DEMO_CLIENT_PHONE})
+              </Button>
             )}
 
-            {/* Form */}
-            <form onSubmit={onSubmit} className="grid gap-3">
-              {mode === "register" && (
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label="Sign-in method">
+              {(["phone", "email"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  role="tab"
+                  aria-selected={method === m}
+                  onClick={() => {
+                    setMethod(m);
+                    reset();
+                  }}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200",
+                    method === m ? "bg-brand text-white shadow-sm" : "text-muted-foreground hover:text-brand",
+                  )}
+                >
+                  {m === "phone" ? "Mobile number" : "Email"}
+                </button>
+              ))}
+            </div>
+
+            {method === "phone" ? (
+              <form
+                className="grid gap-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (codeSent) signInWithToken(() => verifyLoginCode(phone, code));
+                  else void sendCode();
+                }}
+              >
                 <div className="grid gap-1.5">
-                  <Label htmlFor="name" className="text-xs">Your Name</Label>
+                  <Label htmlFor="phone" className="text-xs">Mobile / WhatsApp number (with country code)</Label>
                   <Input
-                    id="name"
-                    name="name"
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
                     required
-                    maxLength={80}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter full name"
+                    autoComplete="tel"
+                    placeholder="91 98765 43210"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      setCodeSent(false);
+                      setCode("");
+                    }}
                   />
                 </div>
-              )}
-
-              <div className="grid gap-1.5">
-                <Label htmlFor="email" className="text-xs">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="grid gap-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-xs">Password</Label>
-                  {mode === "login" && (
+                {codeSent && (
+                  <div className="rise grid gap-1.5">
+                    <Label htmlFor="code" className="text-xs">6-digit code from WhatsApp</Label>
+                    <Input
+                      id="code"
+                      name="code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      required
+                      maxLength={6}
+                      pattern="\d{6}"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                      className="text-center text-lg tracking-[0.5em]"
+                    />
+                  </div>
+                )}
+                <Button type="submit" variant="secondary" disabled={working} className="w-full">
+                  {working ? "Please wait…" : codeSent ? "Verify & Sign In" : "Send code on WhatsApp"}
+                </Button>
+                {codeSent && (
+                  <button type="button" disabled={working} onClick={() => void sendCode()} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+                    Send a new code
+                  </button>
+                )}
+              </form>
+            ) : (
+              <form onSubmit={onEmailSubmit} className="grid gap-3">
+                <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                  {(["login", "register"] as const).map((m) => (
                     <button
+                      key={m}
                       type="button"
-                      onClick={() => void forgotPassword()}
-                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      onClick={() => {
+                        setMode(m);
+                        reset();
+                      }}
+                      className={cn(
+                        "rounded-md px-3 py-1 text-xs font-medium",
+                        mode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+                      )}
                     >
-                      Forgot?
+                      {m === "login" ? "Sign In" : "Register New Account"}
                     </button>
-                  )}
+                  ))}
                 </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+                {mode === "register" && (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="name" className="text-xs">Your Name</Label>
+                    <Input id="name" name="name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter full name" />
+                  </div>
+                )}
+                <div className="grid gap-1.5">
+                  <Label htmlFor="email" className="text-xs">Email</Label>
+                  <Input id="email" name="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="grid gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-xs">Password</Label>
+                    {mode === "login" && (
+                      <button type="button" onClick={() => void forgotPassword()} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+                        Forgot?
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    autoComplete={mode === "login" ? "current-password" : "new-password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" variant="secondary" disabled={working} className="w-full">
+                  {busy ? "Please wait…" : mode === "login" ? "Sign In" : "Create Customer Account"}
+                </Button>
+              </form>
+            )}
 
-              {error && <p role="alert" className="text-xs font-medium text-destructive">{error}</p>}
-              {notice && <p role="status" className="text-xs text-emerald-700">{notice}</p>}
+            {error && <p role="alert" className="text-xs font-medium text-destructive">{error}</p>}
+            {notice && <p role="status" className="text-xs text-emerald-700">{notice}</p>}
 
-              <Button type="submit" variant="secondary" size="sm" disabled={busy} className="w-full">
-                {busy ? "Signing in…" : mode === "login" ? `Sign In (${activeRole.label})` : "Create Customer Account"}
-              </Button>
-            </form>
-
-            {/* Google Login Option */}
-            <div className="space-y-2 border-t pt-2">
+            <div className="border-t pt-3">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={busy}
+                disabled={working}
                 onClick={() => void finish(() => signInWithPopup(clientAuth(), new GoogleAuthProvider()))}
                 className="w-full text-xs"
               >
@@ -303,9 +295,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-white/80">
-          <Link href="/" className="underline-offset-4 hover:underline">
-            ← Back to Mill Website
-          </Link>
+          <Link href="/" className="underline-offset-4 hover:underline">← Back to Mill Website</Link>
         </p>
       </div>
     </main>
