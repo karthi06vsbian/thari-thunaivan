@@ -146,3 +146,5 @@ authenticate each device, write `machineEnergy` as *measured* (measured units ar
 scaled; only the remaining estimates are reconciled to the main meter – the code already
 supports this), derive running/idle hours for `machineLogs`, and set machine status and
 breakdown alerts automatically.
+
+
