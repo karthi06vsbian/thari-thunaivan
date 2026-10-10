@@ -28,22 +28,24 @@ export default async function OverviewPage({
   const user = await requireRole(ACCESS.overview);
   const { denied } = await searchParams;
   const today = todayIso();
-  const [machines, stats, batches, alerts, audit] = await Promise.all([
+  const seesAll = ACCESS.planning.includes(user.role);
+  // Everything is fetched together so the page waits for the slowest read, not the sum of them.
+  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries] = await Promise.all([
     getMachines(),
     getDailyStats(today),
     getBatches(),
     buildAlerts(today),
     getAuditLogs(8),
+    // Owner and manager see every quality check as soon as it is saved.
+    seesAll ? getRecentChecks() : null,
+    // Customer contact details: owner and manager only.
+    seesAll
+      ? db().collection("enquiries").orderBy("at", "desc").limit(5).get().then((snap) =>
+          snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Enquiry),
+        )
+      : null,
   ]);
   const counts = countStatuses(machines);
-  // Customer contact details: owner and manager only.
-  // Owner and manager see every quality check as soon as it is saved.
-  const qualityChecks = ACCESS.planning.includes(user.role) ? await getRecentChecks() : null;
-  const enquiries = ACCESS.planning.includes(user.role)
-    ? (await db().collection("enquiries").orderBy("at", "desc").limit(5).get()).docs.map(
-        (d) => ({ id: d.id, ...d.data() }) as Enquiry,
-      )
-    : null;
   const activeBatches = batches.filter((b) => b.status === "in_progress" || b.status === "planned");
 
   return (

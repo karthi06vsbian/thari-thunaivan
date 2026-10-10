@@ -45,7 +45,9 @@ export function db(): Firestore {
   if (!firestore) {
     firestore = getFirestore(app());
     try {
-      firestore.settings({ ignoreUndefinedProperties: true });
+      // REST instead of gRPC: serverless functions start much faster without opening a gRPC
+      // channel. The local emulator only accepts unauthenticated calls over gRPC, so it keeps that.
+      firestore.settings({ ignoreUndefinedProperties: true, preferRest: !process.env.FIRESTORE_EMULATOR_HOST });
     } catch {
       // Settings were already applied by an earlier module instance (dev hot reload).
     }
