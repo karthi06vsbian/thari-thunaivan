@@ -51,7 +51,7 @@ export function OrderForm({
     <form onSubmit={onSubmit} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor="company">Name or company</Label>
+          <Label htmlFor="company">Name / company</Label>
           <Input id="company" name="company" required maxLength={120} defaultValue={defaults.company} autoComplete="organization" />
         </div>
         <div className="grid gap-2">
