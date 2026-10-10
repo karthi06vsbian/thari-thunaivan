@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "eslint",
     "dev:local": "firebase emulators:exec --project demo-textileflow --only auth,firestore --import=.emulator-data --export-on-exit=.emulator-data \"npm run seed && node --env-file=.env.emulator node_modules/next/dist/bin/next dev --turbopack\"",
     "emulators": "firebase emulators:start --project demo-textileflow --only auth,firestore --import=.emulator-data --export-on-exit=.emulator-data",
