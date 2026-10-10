@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="Cotton fabric, plain weave">
+  <defs>
+    <pattern id="weave" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#e0d4bd"/><rect x="8" y="8" width="8" height="8" fill="#e0d4bd"/>
+      <rect x="8" width="8" height="8" fill="#f7f1e6"/><rect y="8" width="8" height="8" fill="#f7f1e6"/>
+      <rect width="16" height="1" fill="#d3c5aa" opacity=".6"/><rect width="1" height="16" fill="#d3c5aa" opacity=".6"/>
+    </pattern>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.22"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="#efe7d8"/>
+  <rect width="800" height="500" fill="url(#weave)"/>
+  
+  <path d="M7,-20 C19,150 -5,350 13,520 L119,520 C101,350 125,150 113,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M146,-20 C176,150 117,350 161,520 L249,520 C204,350 263,150 234,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <path d="M293,-20 C298,150 289,350 296,520 L369,520 C362,350 371,150 367,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M432,-20 C404,150 459,350 418,520 L494,520 C536,350 481,150 508,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <path d="M563,-20 C544,150 582,350 554,520 L647,520 C676,350 638,150 657,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M685,-20 C702,150 668,350 694,520 L804,520 C778,350 812,150 795,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <rect width="800" height="500" fill="url(#shade)"/>
+</svg>

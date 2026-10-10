@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="Poly-cotton blended fabric, basket weave">
+  <defs>
+    <pattern id="weave" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="24" height="24" fill="#8f9ea3"/>
+      <rect x="1" y="1" width="10" height="4" fill="#a9b7bb"/><rect x="1" y="7" width="10" height="4" fill="#a9b7bb"/>
+      <rect x="13" y="13" width="10" height="4" fill="#a9b7bb"/><rect x="13" y="19" width="10" height="4" fill="#a9b7bb"/>
+      <rect x="13" y="1" width="4" height="10" fill="#6f8f93"/><rect x="19" y="1" width="4" height="10" fill="#6f8f93"/>
+      <rect x="1" y="13" width="4" height="10" fill="#6f8f93"/><rect x="7" y="13" width="4" height="10" fill="#6f8f93"/>
+    </pattern>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.22"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="#8f9ea3"/>
+  <rect width="800" height="500" fill="url(#weave)"/>
+  
+  <path d="M5,-20 C12,150 -2,350 9,520 L118,520 C108,350 122,150 115,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M135,-20 C109,150 161,350 122,520 L232,520 C271,350 219,150 245,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <path d="M283,-20 C262,150 305,350 273,520 L366,520 C398,350 355,150 377,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M432,-20 C447,150 417,350 440,520 L515,520 C493,350 523,150 508,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <path d="M573,-20 C602,150 544,350 588,520 L661,520 C618,350 676,150 647,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M696,-20 C697,150 695,350 696,520 L784,520 C783,350 785,150 784,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <rect width="800" height="500" fill="url(#shade)"/>
+</svg>

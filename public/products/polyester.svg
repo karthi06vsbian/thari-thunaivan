@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="Polyester fabric, twill weave">
+  <defs>
+    <pattern id="weave" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="12" height="12" fill="#3a6ea5"/>
+      <rect width="5" height="12" fill="#2d5a8c"/>
+      <rect x="5" width="1.5" height="12" fill="#6f9bcb" opacity=".8"/>
+    </pattern>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.22"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="#3a6ea5"/>
+  <rect width="800" height="500" fill="url(#weave)"/>
+  
+  <path d="M24,-20 C53,150 -6,350 39,520 L111,520 C67,350 126,150 96,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M147,-20 C151,150 143,350 149,520 L235,520 C229,350 237,150 233,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <path d="M278,-20 C250,150 305,350 264,520 L369,520 C410,350 355,150 382,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M414,-20 C395,150 433,350 405,520 L516,520 C545,350 507,150 526,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <path d="M560,-20 C577,150 542,350 568,520 L669,520 C643,350 678,150 660,-20 Z" fill="#ffffff" opacity="0.2" filter="url(#soft)"/>
+  <path d="M699,-20 C727,150 671,350 713,520 L795,520 C753,350 809,150 781,-20 Z" fill="#000000" opacity="0.16" filter="url(#soft)"/>
+  <rect width="800" height="500" fill="url(#shade)"/>
+</svg>

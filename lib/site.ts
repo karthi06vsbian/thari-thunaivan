@@ -7,12 +7,15 @@ export const SITE = {
   tagline: "Woven fabric, made to order and delivered on time",
   intro:
     "We are a weaving mill running 50 looms. Tell us the fabric, width and quantity you need and we will plan the looms, give you a delivery date and keep to it.",
-  /** `value` is the fabric type the looms are matched on. */
+  /**
+   * `value` is the fabric type the looms are matched on. `image` is a file in
+   * public/products; swap the illustrations for real photos by replacing those files.
+   */
   fabrics: [
-    { name: "Cotton", value: "cotton", detail: "Shirting, sheeting and grey fabric in standard and wide widths." },
-    { name: "Polyester", value: "polyester", detail: "Durable polyester weaves for garments and furnishing." },
-    { name: "Blends", value: "blend", detail: "Poly-cotton and other blended yarn fabrics." },
-    { name: "Silk", value: "silk", detail: "Narrow-width silk woven on dedicated looms." },
+    { name: "Cotton", value: "cotton", image: "/products/cotton.svg", detail: "Shirting, sheeting and grey fabric in standard and wide widths." },
+    { name: "Polyester", value: "polyester", image: "/products/polyester.svg", detail: "Durable polyester weaves for garments and furnishing." },
+    { name: "Blends", value: "blend", image: "/products/blend.svg", detail: "Poly-cotton and other blended yarn fabrics." },
+    { name: "Silk", value: "silk", image: "/products/silk.svg", detail: "Narrow-width silk woven on dedicated looms." },
   ],
   phone: "",
   email: "",
