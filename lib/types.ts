@@ -205,8 +205,12 @@ export interface Bundle {
   gsm: number | null;
   defects: number | null;
   grade: "A" | "B" | "C" | null;
-  /** 0-100, worked out from defects per 100 m and grade when the check is saved. */
+  /** Overall quality percentage: the share of all checks, across the three inspections, that passed. */
   qualityScore: number | null;
+  /** Value and pass tick for each check, keyed as in lib/quality-checks.ts. */
+  checks?: Record<string, { value: number | null; pass: boolean }>;
+  /** Percentage passed in each inspection. */
+  sectionPercent?: { raw: number; yarn: number; fabric: number } | null;
   remarks: string;
   checkedBy: string | null;
   checkedAt: string | null;

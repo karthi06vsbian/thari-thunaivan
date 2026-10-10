@@ -8,7 +8,7 @@ import { ACCESS, assertRole } from "@/lib/auth/session";
 import { getBatch } from "@/lib/data";
 import { db } from "@/lib/firebase/admin";
 import { bundleNoFor, getBundle, getBundlesForBatch, QC_LABEL } from "@/lib/quality";
-import { qualityScore, scoreBand } from "@/lib/quality-score";
+import { QC_SECTIONS, qualityPercentages, scoreBand } from "@/lib/quality-checks";
 import type { Bundle } from "@/lib/types";
 import { sendToOwners } from "@/lib/whatsapp/send";
 
@@ -40,12 +40,13 @@ export async function createBundles(batchId: string, count: number) {
   });
 }
 
+const checkKeys = new Set(QC_SECTIONS.flatMap((s) => s.checks.map((c) => c.key)));
+
 const qcSchema = z.object({
   bundleId: z.string().min(1),
   lengthMeters: z.number().positive("Enter the bundle length").max(100_000),
-  widthInches: z.number().positive("Enter the bundle width").max(200),
-  gsm: z.number().positive().max(2_000).nullable(),
-  defects: z.number().int().min(0).max(10_000),
+  /** One entry per check: the measured value (if any) and whether it passed. */
+  checks: z.record(z.string(), z.object({ value: z.number().min(0).max(1_000_000).nullable(), pass: z.boolean() })),
   grade: z.enum(["A", "B", "C"]),
   result: z.enum(["pass", "rework", "fail"]),
   remarks: z.string().trim().max(500),
@@ -62,16 +63,23 @@ export async function saveQualityCheck(input: z.infer<typeof qcSchema>) {
     if (!bundle) throw new Error("Bundle not found");
     if (q.result !== "pass" && !q.remarks) throw new Error("Add a remark explaining the rework or failure");
 
+    // Only known checks are kept, and the percentages are worked out here, never taken from the browser.
+    const checks = Object.fromEntries(Object.entries(q.checks).filter(([key]) => checkKeys.has(key)));
+    const width = checks.fab_width?.value ?? null;
+    if (width === null || width <= 0) throw new Error("Enter the measured width in the fabric checks");
+    const pct = qualityPercentages(checks);
+
     const recheck = bundle.status !== "pending";
-    const score = qualityScore(q.lengthMeters, q.defects, q.grade);
     await db().collection("bundles").doc(bundle.id).update({
       status: q.result,
       lengthMeters: q.lengthMeters,
-      widthInches: q.widthInches,
-      gsm: q.gsm,
-      defects: q.defects,
+      widthInches: width,
+      gsm: checks.fab_gsm?.value ?? null,
+      defects: checks.fab_defects?.value ?? 0,
       grade: q.grade,
-      qualityScore: score,
+      checks,
+      sectionPercent: { raw: pct.raw, yarn: pct.yarn, fabric: pct.fabric },
+      qualityScore: pct.overall,
       remarks: q.remarks,
       checkedBy: user.name,
       checkedAt: new Date().toISOString(),
@@ -81,14 +89,15 @@ export async function saveQualityCheck(input: z.infer<typeof qcSchema>) {
       recheck ? "quality-recheck" : "quality-check",
       "bundle",
       bundle.bundleNo,
-      `${QC_LABEL[q.result]} · ${q.lengthMeters} m × ${q.widthInches}" · grade ${q.grade} · ${q.defects} defect(s) · score ${score}`,
+      `${QC_LABEL[q.result]} · quality ${pct.overall}% (raw ${pct.raw}%, yarn ${pct.yarn}%, fabric ${pct.fabric}%) · grade ${q.grade}`,
     );
     await sendToOwners(
       [
         `*Quality check – ${bundle.bundleNo}* (${bundle.orderNo}, ${bundle.fabricType})`,
         `Result: ${QC_LABEL[q.result]} · Grade ${q.grade}`,
-        `Quality score: ${score} / 100 (${scoreBand(score)})`,
-        `Length ${q.lengthMeters} m · Width ${q.widthInches}"${q.gsm ? ` · ${q.gsm} GSM` : ""} · ${q.defects} defect(s)`,
+        `Quality: ${pct.overall}% (${scoreBand(pct.overall)})`,
+        `• Raw material ${pct.raw}%  • Yarn ${pct.yarn}%  • Fabric ${pct.fabric}%`,
+        `Length ${q.lengthMeters} m · Width ${width}"`,
         q.remarks && `Remarks: ${q.remarks}`,
         `Checked by ${user.name}`,
       ]
@@ -97,6 +106,6 @@ export async function saveQualityCheck(input: z.infer<typeof qcSchema>) {
       "quality-check",
     );
     revalidatePath("/admin", "layout");
-    return { message: `${bundle.bundleNo} saved as ${QC_LABEL[q.result]} with a quality score of ${score}. Owner and manager have been updated.` };
+    return { message: `${bundle.bundleNo} saved as ${QC_LABEL[q.result]} with ${pct.overall}% quality. Owner and manager have been updated.` };
   });
 }

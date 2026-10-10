@@ -29,12 +29,12 @@ export default async function QualityPage() {
 
   return (
     <>
-      <PageHeader title="🔍 Quality check" description="Scan a bundle's QR label, enter its length, width and test results, and save." />
+      <PageHeader title="🔍 Quality check" description="Scan a bundle's QR label, then do the raw material, yarn and fabric checks. The quality percentage is calculated for you." />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi label="Waiting for check" value={String(count("pending"))} />
         <Kpi label="Passed" value={String(count("pass"))} hint={`${formatNumber(Math.round(checkedMeters))} m approved`} />
         <Kpi label="Rework / failed" value={`${count("rework")} / ${count("fail")}`} />
-        <Kpi label="Average quality score" value={avgScore === null ? "—" : `${avgScore} / 100`} hint={`${scored.length} bundle(s) checked`} />
+        <Kpi label="Average quality" value={avgScore === null ? "—" : `${avgScore}%`} hint={`${scored.length} bundle(s) checked`} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -74,7 +74,10 @@ export default async function QualityPage() {
                   <TableHead className="text-right">Length (m)</TableHead>
                   <TableHead className="text-right">Width (in)</TableHead>
                   <TableHead>Grade</TableHead>
-                  <TableHead className="text-right">Score</TableHead>
+                  <TableHead className="text-right">Raw</TableHead>
+                  <TableHead className="text-right">Yarn</TableHead>
+                  <TableHead className="text-right">Fabric</TableHead>
+                  <TableHead className="text-right">Quality</TableHead>
                   <TableHead className="text-right">Defects</TableHead>
                   <TableHead>Checked by</TableHead>
                   <TableHead />
@@ -97,7 +100,10 @@ export default async function QualityPage() {
                     <TableCell className="text-right tabular-nums">{b.lengthMeters ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.widthInches ?? "—"}</TableCell>
                     <TableCell>{b.grade ?? "—"}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{b.qualityScore ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{b.sectionPercent ? `${b.sectionPercent.raw}%` : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{b.sectionPercent ? `${b.sectionPercent.yarn}%` : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{b.sectionPercent ? `${b.sectionPercent.fabric}%` : "—"}</TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">{typeof b.qualityScore === "number" ? `${b.qualityScore}%` : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.defects ?? "—"}</TableCell>
                     <TableCell>{b.checkedBy ?? "—"}</TableCell>
                     <TableCell>
