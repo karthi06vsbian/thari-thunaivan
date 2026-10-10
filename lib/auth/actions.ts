@@ -40,8 +40,10 @@ export async function createSession(idToken: string, displayName?: string): Prom
       maxAge: SESSION_MAX_AGE_MS / 1000,
     });
     return { ok: true, home: role === "client" ? "/portal" : "/admin" };
-  } catch {
-    return { ok: false, error: "Could not start a session. Try signing in again." };
+  } catch (err) {
+    console.error("createSession error:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Could not start a session (${msg}). Try signing in again.` };
   }
 }
 

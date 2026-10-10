@@ -13,10 +13,18 @@ function parseServiceAccountKey(raw: string | undefined): Record<string, unknown
     str = str.slice(1, -1).trim();
   }
   try {
-    return JSON.parse(str);
+    const obj = JSON.parse(str);
+    if (typeof obj.private_key === "string" && obj.private_key.includes("\\n")) {
+      obj.private_key = obj.private_key.replace(/\\n/g, "\n");
+    }
+    return obj;
   } catch {
     try {
-      return JSON.parse(str.replace(/\\n/g, "\n"));
+      const obj = JSON.parse(str.replace(/\\n/g, "\n"));
+      if (typeof obj.private_key === "string" && obj.private_key.includes("\\n")) {
+        obj.private_key = obj.private_key.replace(/\\n/g, "\n");
+      }
+      return obj;
     } catch (err) {
       console.error("FIREBASE_SERVICE_ACCOUNT_KEY parse error:", err);
       return undefined;
