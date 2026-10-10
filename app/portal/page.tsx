@@ -43,22 +43,22 @@ export default async function PortalPage() {
   );
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <header className="border-b bg-background">
+    <div className="min-h-screen bg-brand-soft/40">
+      <header className="hero-weave text-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="text-lg font-semibold tracking-tight">{SITE.name}</Link>
           <div className="flex items-center gap-3 text-sm">
-            <span className="hidden text-muted-foreground sm:inline">{user.email}</span>
+            <span className="hidden text-white/75 sm:inline">{user.email}</span>
             <form action={signOut}>
-              <Button type="submit" variant="outline" size="sm"><LogOut /> Sign out</Button>
+              <Button type="submit" variant="outline" size="sm" className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"><LogOut /> Sign out</Button>
             </form>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-5xl gap-6 px-4 py-8">
+      <main className="rise mx-auto grid max-w-5xl gap-6 px-4 py-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome, {user.name}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-brand">Welcome, {user.name}</h1>
           <p className="text-sm text-muted-foreground">Place a new order or check on the ones you have with us.</p>
         </div>
 

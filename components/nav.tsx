@@ -42,11 +42,11 @@ export function Nav({ items }: { items: NavItem[] }) {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
-              active && "bg-muted text-foreground",
+              "group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/75 transition-all duration-200 hover:translate-x-1 hover:bg-white/10 hover:text-white",
+              active && "bg-white text-brand shadow-md hover:translate-x-0 hover:bg-white hover:text-brand",
             )}
           >
-            <Icon className="size-4" />
+            <Icon className="size-4 transition-transform duration-200 group-hover:scale-110" />
             {item.label}
           </Link>
         );

@@ -140,11 +140,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <div className="grid w-full max-w-md gap-4">
-        <Card className="shadow-md">
+    <main className="hero-weave relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      <div aria-hidden="true" className="blob absolute -top-24 right-[-6rem] size-96 rounded-full bg-teal/30 blur-3xl" />
+      <div aria-hidden="true" className="blob absolute bottom-[-8rem] left-[-4rem] size-80 rounded-full bg-white/10 blur-3xl [animation-delay:-4s]" />
+      <div className="rise relative grid w-full max-w-md gap-4">
+        <Card className="shadow-2xl shadow-black/30">
           <CardHeader className="pb-3 text-center">
-            <CardTitle className="text-2xl font-bold tracking-tight">{SITE.name}</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight text-brand">{SITE.name}</CardTitle>
             <p className="text-xs text-muted-foreground font-medium">தறி துணைவன் · Weaving Mill Management System</p>
           </CardHeader>
 
@@ -159,10 +161,10 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => pickRole(r.id as RoleId)}
                     className={cn(
-                      "flex flex-col items-center justify-center rounded-lg py-1.5 px-1 text-xs font-medium transition-all",
+                      "flex flex-col items-center justify-center rounded-lg py-1.5 px-1 text-xs font-medium transition-all duration-200",
                       selectedRole === r.id
-                        ? "bg-background text-foreground shadow-sm font-semibold"
-                        : "text-muted-foreground hover:text-foreground",
+                        ? "scale-105 bg-brand font-semibold text-white shadow-md"
+                        : "text-muted-foreground hover:bg-brand-soft hover:text-brand",
                     )}
                   >
                     <span className="text-base">{r.icon}</span>
@@ -173,7 +175,7 @@ export default function LoginPage() {
             </div>
 
             {/* Active Role Description Banner */}
-            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-xs">
+            <div key={selectedRole} className="rise rounded-lg border border-teal/30 bg-teal-soft px-3 py-2 text-xs">
               <div className="flex items-center gap-1.5 font-semibold text-foreground">
                 <span>{activeRole.icon}</span>
                 <span>{activeRole.title}</span>
@@ -188,7 +190,7 @@ export default function LoginPage() {
               size="lg"
               disabled={busy}
               onClick={oneClickLogin}
-              className="w-full font-semibold shadow"
+              className="btn-shine w-full font-semibold shadow"
             >
               ⚡ 1-Click Sign In as {activeRole.label}
             </Button>
@@ -300,7 +302,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-white/80">
           <Link href="/" className="underline-offset-4 hover:underline">
             ← Back to Mill Website
           </Link>
