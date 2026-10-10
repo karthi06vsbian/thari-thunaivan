@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Script from "next/script";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth/actions";
@@ -9,6 +10,7 @@ import type { AppUser } from "@/lib/types";
 export function PortalShell({ user, children }: { user: AppUser; children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-brand-soft/40">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <header className="hero-weave text-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/portal" className="text-lg font-semibold tracking-tight">{SITE.name}</Link>
