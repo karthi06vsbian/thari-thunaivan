@@ -160,9 +160,7 @@ export default async function OverviewPage({
                     <div>
                       <p className="flex flex-wrap items-center gap-2 font-medium">
                         <Stars rating={r.rating} /> {r.name} · {r.orderNo}
-                        <span className={`rounded-full px-2 py-0.5 text-xs ${r.approved ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                          {r.approved ? (r.rating >= PUBLIC_MIN_RATING ? "On the website" : "Approved, below 4 stars so not shown") : "Waiting for approval"}
-                        </span>
+                        {r.rating < PUBLIC_MIN_RATING && <span className="text-xs font-normal text-muted-foreground">(below 4 stars, never shown on the website)</span>}
                       </p>
                       <p className="mt-1 text-muted-foreground">“{r.text}”</p>
                     </div>

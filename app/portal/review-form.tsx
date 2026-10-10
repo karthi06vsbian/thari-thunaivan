@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Stars } from "@/components/stars";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { submitReview } from "./actions";
@@ -11,6 +12,18 @@ export function ReviewForm({ orderId }: { orderId: string }) {
   const [rating, setRating] = useState(5);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [sent, setSent] = useState<string | null>(null);
+
+  // Once sent, the form is replaced straight away by what was submitted.
+  if (sent !== null) {
+    return (
+      <div className="rise grid gap-2 text-sm" role="status">
+        <Stars rating={rating} />
+        <p>“{sent}”</p>
+        <p className="text-emerald-700">Thank you! Your review will appear on our website once we have approved it.</p>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -21,7 +34,10 @@ export function ReviewForm({ orderId }: { orderId: string }) {
         startTransition(async () => {
           const res = await submitReview({ orderId, rating, text });
           setResult(res.ok ? { ok: true, text: res.message ?? "Thank you!" } : { ok: false, text: res.error });
-          if (res.ok) router.refresh();
+          if (res.ok) {
+            setSent(text);
+            router.refresh();
+          }
         });
       }}
     >

@@ -128,6 +128,9 @@ export function qualityPercentages(entries: CheckEntries): QualityPercentages {
   return { ...bySection, overall: percent(totalPassed, totalChecks) };
 }
 
+/** A bundle needs at least this overall percentage to be passed for dispatch. */
+export const MIN_PASS_PERCENT = 75;
+
 export function scoreBand(score: number): "Excellent" | "Good" | "Fair" | "Poor" {
   return score >= 90 ? "Excellent" : score >= 75 ? "Good" : score >= 60 ? "Fair" : "Poor";
 }

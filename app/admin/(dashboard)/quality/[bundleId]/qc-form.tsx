@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  MIN_PASS_PERCENT,
   meetsStandard,
   QC_SECTIONS,
   qualityPercentages,
@@ -58,6 +59,10 @@ export function QcForm({ bundle, orderWidthInches }: { bundle: Bundle; orderWidt
     Object.entries(rows).map(([key, r]) => [key, { value: r.value === "" ? null : Number(r.value), pass: r.pass }]),
   );
   const pct = qualityPercentages(entries);
+  const canPass = pct.overall >= MIN_PASS_PERCENT;
+  // "Pass" is only offered at or above the minimum; below it the choice falls back to Rework.
+  const [chosen, setChosen] = useState<"pass" | "rework" | "fail">(bundle.status === "pending" ? "pass" : bundle.status);
+  const finalResult = chosen === "pass" && !canPass ? "rework" : chosen;
 
   /** Typing a value ticks or unticks the check by its standard; checks without one are ticked by hand. */
   function setValue(def: CheckDef, value: string) {
@@ -97,7 +102,7 @@ export function QcForm({ bundle, orderWidthInches }: { bundle: Bundle; orderWidt
         lengthMeters: Number(length),
         checks: entries,
         grade: String(f.get("grade")) as "A" | "B" | "C",
-        result: String(f.get("result")) as "pass" | "rework" | "fail",
+        result: finalResult,
         remarks: String(f.get("remarks") ?? ""),
       });
       if (result.ok) {
@@ -213,11 +218,16 @@ export function QcForm({ bundle, orderWidthInches }: { bundle: Bundle; orderWidt
         </div>
         <div className="grid gap-2">
           <Label htmlFor="result">Final result</Label>
-          <NativeSelect id="result" name="result" required defaultValue={bundle.status === "pending" ? "pass" : bundle.status}>
+          <NativeSelect id="result" name="result" required value={finalResult} onChange={(e) => setChosen(e.target.value as "pass" | "rework" | "fail")}>
             {RESULTS.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
+              <option key={r.value} value={r.value} disabled={r.value === "pass" && !canPass}>{r.label}</option>
             ))}
           </NativeSelect>
+          {!canPass && (
+            <p className="text-xs text-amber-700">
+              Quality is {pct.overall}%. A bundle needs {MIN_PASS_PERCENT}% or more to pass.
+            </p>
+          )}
         </div>
       </div>
       <div className="grid gap-2">

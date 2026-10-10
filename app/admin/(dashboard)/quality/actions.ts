@@ -8,7 +8,7 @@ import { ACCESS, assertRole } from "@/lib/auth/session";
 import { getBatch } from "@/lib/data";
 import { db } from "@/lib/firebase/admin";
 import { bundleNoFor, getBundle, getBundlesForBatch, QC_LABEL } from "@/lib/quality";
-import { QC_SECTIONS, qualityPercentages, scoreBand } from "@/lib/quality-checks";
+import { MIN_PASS_PERCENT, QC_SECTIONS, qualityPercentages, scoreBand } from "@/lib/quality-checks";
 import type { Bundle } from "@/lib/types";
 import { sendToOwners } from "@/lib/whatsapp/send";
 
@@ -68,6 +68,9 @@ export async function saveQualityCheck(input: z.infer<typeof qcSchema>) {
     const width = checks.fab_width?.value ?? null;
     if (width === null || width <= 0) throw new Error("Enter the measured width in the fabric checks");
     const pct = qualityPercentages(checks);
+    if (q.result === "pass" && pct.overall < MIN_PASS_PERCENT) {
+      throw new Error(`Quality is ${pct.overall}%. A bundle needs ${MIN_PASS_PERCENT}% or more to pass, so choose Rework or Fail.`);
+    }
 
     const recheck = bundle.status !== "pending";
     await db().collection("bundles").doc(bundle.id).update({

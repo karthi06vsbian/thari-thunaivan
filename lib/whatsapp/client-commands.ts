@@ -3,6 +3,7 @@
  * Automatically replies with product details, order progress, and live dispatch/tracking info.
  */
 
+import { SITE } from "@/lib/site";
 import { getOrders, getBatches } from "@/lib/data";
 import { formatDate } from "@/lib/dates";
 import { formatNumber, formatINR } from "@/lib/money";
@@ -101,13 +102,13 @@ export async function buildOrderDetailsCard(orderNo?: string, clientPhone?: stri
       `• *Mill Location:* Thari Thunaivan Weaving Mill, Erode, Tamil Nadu`,
       `• *Dispatch Plan:* Transport pre-booked upon batch completion`,
       `• *Live Tracking:* Available as soon as vehicle departs from mill`,
-      `• *Live Portal Tracking:* https://thari-thunaivan-featadmin-dashboard-0fb2650.kuberns.cloud/portal`,
+      `• *Live Portal Tracking:* ${SITE.url}/portal`,
     );
   } else {
     lines.push(
       `• *Status:* 📝 Order confirmed. Assigned to loom schedule.`,
       `• *Mill Location:* Erode Weaving Belt, Tamil Nadu`,
-      `• *Portal:* https://thari-thunaivan-featadmin-dashboard-0fb2650.kuberns.cloud/portal`,
+      `• *Portal:* ${SITE.url}/portal`,
     );
   }
 

@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, Gauge, Ruler, Zap } from "lucide-react";
+import { MobileMenu } from "@/components/mobile-menu";
 import { CountUp, Reveal } from "@/components/reveal";
 import { SiteGallery } from "@/components/site-gallery";
 import { SiteReviews } from "@/components/site-reviews";
@@ -80,25 +82,40 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b bg-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <div className="relative mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight text-brand">
-            <Image src="/logo-mark.png" alt="" width={40} height={40} priority className="size-10" />
+            {/* Plain img: the header must not wait on any script before the page becomes interactive. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-mark-96.png" alt="" width={40} height={40} className="size-10" />
             {SITE.name}
           </Link>
           <nav className="flex items-center gap-1 text-sm">
             {[
-              ["#about", "About", "md:block"],
-              ["#fabrics", "Products", "sm:block"],
-              ["#process", "How we work", "sm:block"],
+              ["#about", "About", "lg:block"],
+              ["#fabrics", "Products", "lg:block"],
+              ["#process", "How we work", "lg:block"],
               ["#gallery", "Gallery", "lg:block"],
               ["#reviews", "Reviews", "lg:block"],
-              ["#faq", "FAQ", "md:block"],
+              ["#faq", "FAQ", "lg:block"],
             ].map(([href, label, show]) => (
               <a key={href} href={href} className={cn("hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-brand-soft hover:text-brand", show)}>
                 {label}
               </a>
             ))}
-            <Link href="/portal" className={cn(buttonVariants({ size: "lg" }), "btn-shine ml-2")}>Client login</Link>
+            <Link href="/portal" className={cn(buttonVariants({ size: "lg" }), "btn-shine mx-2")}>Client login</Link>
+            <Suspense fallback={null}>
+              <MobileMenu
+                links={[
+                  { href: "#about", label: "About" },
+                  { href: "#fabrics", label: "Products" },
+                  { href: "#process", label: "How we work" },
+                  { href: "#gallery", label: "Gallery" },
+                  { href: "#reviews", label: "Reviews" },
+                  { href: "#faq", label: "FAQ" },
+                  { href: "#enquiry", label: "Get a quote" },
+                ]}
+              />
+            </Suspense>
           </nav>
         </div>
       </header>
@@ -153,7 +170,7 @@ export default function HomePage() {
         <section id="about" className="scroll-mt-16 border-t bg-brand-soft/60">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 lg:grid-cols-2">
             <Reveal>
-              <Image src="/logo.png" alt={`${SITE.name} logo`} width={900} height={531} sizes="320px" className="mb-6 h-auto w-64 sm:w-80" />
+              <Image src="/logo.png" alt={`${SITE.name} logo`} width={900} height={515} sizes="320px" className="mb-6 h-auto w-64 sm:w-80" />
               <p className="text-sm font-semibold tracking-widest text-teal uppercase"><span aria-hidden="true">🏭</span> About the mill</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight">Run on numbers, not guesswork</h2>
               <p className="mt-4 text-muted-foreground">
@@ -294,8 +311,13 @@ export default function HomePage() {
             </Reveal>
           </div>
         </section>
-        <SiteGallery />
-        <SiteReviews />
+        <Suspense fallback={null}>
+          <SiteGallery />
+        </Suspense>
+        {/* Reviews are read from the database; the rest of the page must not wait on them. */}
+        <Suspense fallback={<section id="reviews" className="h-96 border-t bg-brand-soft/60" aria-busy="true" />}>
+          <SiteReviews />
+        </Suspense>
       </main>
 
             <footer className="bg-brand-dark text-white border-t border-brand/20">

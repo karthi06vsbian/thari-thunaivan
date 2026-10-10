@@ -13,6 +13,8 @@ export interface GalleryItem {
  */
 export const SITE = {
   name: "Thari Thunaivan",
+  /** Public address of the website, used in links sent by WhatsApp. */
+  url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://thari-thunaivan.vercel.app").replace(/\/$/, ""),
   tagline: "Woven fabric, made to order and delivered on time",
   intro:
     "We are a weaving mill running 50 looms. Tell us the fabric, width and quantity you need and we will plan the looms, give you a delivery date and keep to it.",
