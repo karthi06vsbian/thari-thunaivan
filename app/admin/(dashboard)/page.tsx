@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Kpi, PageHeader } from "@/components/kpi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ACCESS, requireRole } from "@/lib/auth/session";
-import { getAuditLogs, getBatches, getDailyStats, getMachines, getOrders, getShiftSettings } from "@/lib/data";
+import { getAuditLogs, getBatches, getDailyStats, getMachines, getMaterials, getOrders, getShiftSettings } from "@/lib/data";
 import { formatDate, todayIso } from "@/lib/dates";
 import { formatINR, formatNumber } from "@/lib/money";
 import { db } from "@/lib/firebase/admin";
@@ -12,7 +12,9 @@ import { getAllReviews, PUBLIC_MIN_RATING } from "@/lib/reviews";
 import { ReviewControls } from "./review-controls";
 import { deadlineAlerts } from "@/lib/planning/deadline";
 import { buildAlerts, countStatuses } from "@/lib/reports";
+import { stockAdvice } from "@/lib/stock";
 import { DeadlineAlerts, DUE_WINDOWS } from "./deadline-alerts";
+import { StockBox } from "./stock-box";
 
 interface Enquiry {
   id: string;
@@ -36,7 +38,7 @@ export default async function OverviewPage({
   const today = todayIso();
   const seesAll = ACCESS.planning.includes(user.role);
   // Everything is fetched together so the page waits for the slowest read, not the sum of them.
-  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries, reviews, orders, shifts] = await Promise.all([
+  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries, reviews, orders, shifts, materials] = await Promise.all([
     getMachines(),
     getDailyStats(today),
     getBatches(),
@@ -53,6 +55,7 @@ export default async function OverviewPage({
     seesAll ? getAllReviews() : null,
     seesAll ? getOrders() : null,
     getShiftSettings(),
+    seesAll ? getMaterials() : null,
   ]);
   const counts = countStatuses(machines);
   const activeBatches = batches.filter((b) => b.status === "in_progress" || b.status === "planned");
@@ -89,6 +92,7 @@ export default async function OverviewPage({
       </div>
 
       {orders && <DeadlineAlerts alerts={deadlineAlerts(orders, batches, machines, shifts, today, dueWithin)} within={dueWithin} />}
+      {orders && materials && <StockBox advice={stockAdvice(materials, orders, batches)} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

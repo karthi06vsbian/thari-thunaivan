@@ -22,6 +22,7 @@ import {
   recomputeRolling,
 } from "@/lib/services/recompute";
 import type { Batch, ElectricityReading, MachineDoc, MachineLog, Order, StaffRole as Role } from "@/lib/types";
+import { sampleMaterials } from "./sample-materials";
 import { sampleWorkers } from "./sample-workers";
 
 const DEMO_CLIENT_ORDERS = ["ORD-1001", "ORD-1003"];
@@ -283,6 +284,7 @@ async function main() {
     const { id, ...data } = shipment;
     writes.push((b) => b.set(db().collection("shipments").doc(id), data));
   }
+  for (const { id, ...data } of sampleMaterials("Seed script")) writes.push((b) => b.set(db().collection("materials").doc(id), data));
   const sample = sampleWorkers(today);
   for (const { id, ...data } of sample.workers) writes.push((b) => b.set(db().collection("workers").doc(id), data));
   for (const p of sample.pay) writes.push((b) => b.set(db().collection("workerPay").doc(p.id), p.data));

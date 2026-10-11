@@ -303,3 +303,21 @@ export interface PayRules {
   /** An increment is flagged as due this long after the last one. */
   incrementEveryMonths: number;
 }
+
+/** A raw material kept in the store room, such as yarn or sizing chemical. */
+export interface Material {
+  id: string;
+  name: string;
+  /** How it is counted: kg, cones, litres… */
+  unit: string;
+  /** Fabric it goes into, or null when every fabric uses it. */
+  fabricType: string | null;
+  /** Quantity in the store now. */
+  stock: number;
+  /** Reorder level: below this the stock is low. */
+  minStock: number;
+  /** Quantity used for each meter of fabric woven. */
+  usePerMeter: number;
+  updatedAt: string;
+  updatedBy: string;
+}

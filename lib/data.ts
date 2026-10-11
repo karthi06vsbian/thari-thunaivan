@@ -10,6 +10,7 @@ import type {
   ElectricitySettings,
   MachineDoc,
   MachineLog,
+  Material,
   Order,
   RateHistoryEntry,
 } from "@/lib/types";
@@ -112,6 +113,11 @@ export async function getElectricitySettings(): Promise<ElectricitySettings> {
 export async function getRateHistory(): Promise<RateHistoryEntry[]> {
   const rows = await list<RateHistoryEntry>(db().collection("electricityRateHistory"));
   return rows.sort((a, b) => b.changedAt.localeCompare(a.changedAt));
+}
+
+export async function getMaterials(): Promise<Material[]> {
+  const materials = await list<Material>(db().collection("materials"));
+  return materials.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function getAuditLogs(limit = 20): Promise<AuditLog[]> {

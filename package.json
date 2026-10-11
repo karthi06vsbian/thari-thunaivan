@@ -17,7 +17,9 @@
     "create-user": "tsx --env-file=.env.local scripts/create-user.ts",
     "seed:firebase": "tsx --env-file=.env.local scripts/seed.ts",
     "seed:workers": "tsx --env-file=.env.emulator scripts/seed-workers.ts",
-    "seed:workers:firebase": "tsx --env-file=.env.local scripts/seed-workers.ts"
+    "seed:workers:firebase": "tsx --env-file=.env.local scripts/seed-workers.ts",
+    "seed:materials": "tsx --env-file=.env.emulator scripts/seed-materials.ts",
+    "seed:materials:firebase": "tsx --env-file=.env.local scripts/seed-materials.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
