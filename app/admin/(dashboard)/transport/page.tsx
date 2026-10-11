@@ -5,12 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ACCESS, requireRole } from "@/lib/auth/session";
 import { getBatches, getOrders } from "@/lib/data";
 import { addDays, formatDate, todayIso } from "@/lib/dates";
-import { formatNumber } from "@/lib/money";
+import { formatINR, formatNumber } from "@/lib/money";
+import { JOB_ROLES, monthLabel, monthsBetween, serviceLabel } from "@/lib/payroll";
 import { getShipments } from "@/lib/transport/data";
 import { routeById, routeKm, ROUTES } from "@/lib/transport/routes";
 import { LazyLiveMap as LiveMap } from "@/components/lazy-live-map";
 import type { LiveTruck } from "./live-map";
-import { DispatchForm, ShipmentControls } from "./transport-forms";
+import { getWorkers, tripsByDriver } from "@/lib/workers/data";
+import { AddDriverForm, DispatchForm, ShipmentControls } from "./transport-forms";
 
 const DAY_MS = 86_400_000;
 const when = (iso: string) =>
@@ -21,7 +23,11 @@ const daysBetween = (from: string, to: string) =>
 export default async function TransportPage() {
   await requireRole(ACCESS.transport);
   const today = todayIso();
-  const [shipments, orders, batches] = await Promise.all([getShipments(), getOrders(), getBatches()]);
+  const [shipments, orders, batches, workers] = await Promise.all([getShipments(), getOrders(), getBatches(), getWorkers()]);
+  const drivers = workers.filter((w) => w.jobRole === "driver" && w.active);
+  const month = today.slice(0, 7);
+  const trips = tripsByDriver(shipments, month);
+  const driverOptions = drivers.map((d) => ({ id: d.id, name: d.name, vehicleNo: d.vehicleNo ?? null }));
   const onRoad = shipments.filter((s) => s.status === "in_transit");
   const delivered = shipments.filter((s) => s.status === "delivered");
   const shipped = new Set(shipments.map((s) => s.orderNo));
@@ -96,6 +102,7 @@ export default async function TransportPage() {
                     <p className="text-sm text-muted-foreground">
                       {formatNumber(s.meters)} m <span className="capitalize">{s.fabricType}</span> · Erode → {route?.destination ?? s.routeId} ·{" "}
                       {route ? `${Math.round(routeKm(route))} km` : ""} · truck {s.vehicleNo} · driver {s.driverName}
+                      {s.tripPayPaise ? ` · trip pay ${formatINR(s.tripPayPaise, { whole: true })}` : ""}
                     </p>
                     {s.deliveryAddress && <p className="text-sm"><span className="text-muted-foreground">Deliver to: </span>{s.deliveryAddress}</p>}
                   </div>
@@ -140,7 +147,7 @@ export default async function TransportPage() {
                   <span className="font-semibold">{o.orderNo}</span> · {o.customerName} · {formatNumber(o.meters)} m{" "}
                   <span className="capitalize">{o.fabricType}</span>
                 </p>
-                <DispatchForm orderId={o.id} routes={routeOptions} />
+                <DispatchForm orderId={o.id} routes={routeOptions} drivers={driverOptions} />
               </div>
             ))}
           </CardContent>
@@ -185,6 +192,52 @@ export default async function TransportPage() {
       </div>
 
       <Card>
+        <CardHeader>
+          <CardTitle>👷 Drivers & salary</CardTitle>
+          <CardDescription>Monthly salary of each driver and the trip pay earned on orders dispatched in {monthLabel(month)}.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {drivers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No drivers yet. Add one to start dispatching.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Driver</TableHead>
+                  <TableHead>Licence</TableHead>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead className="text-right">Salary / month</TableHead>
+                  <TableHead className="text-right">Trips</TableHead>
+                  <TableHead className="text-right">Trip pay</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {drivers.map((d) => {
+                  const t = trips.get(d.id);
+                  return (
+                    <TableRow key={d.id}>
+                      <TableCell>
+                        <p className="font-medium">{d.name}</p>
+                        <p className="text-xs text-muted-foreground">{d.workerNo} · {JOB_ROLES[d.jobRole]}{d.phone ? ` · ${d.phone}` : ""}</p>
+                      </TableCell>
+                      <TableCell>{d.licenceNo ?? "—"}</TableCell>
+                      <TableCell>{d.vehicleNo ?? "—"}</TableCell>
+                      <TableCell>{serviceLabel(monthsBetween(d.joinedOn, today))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatINR(d.monthlyPaise, { whole: true })}</TableCell>
+                      <TableCell className="text-right tabular-nums">{t?.trips ?? 0}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">{formatINR(t?.paise ?? 0, { whole: true })}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+          <AddDriverForm today={today} />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>✅ Delivered</CardTitle></CardHeader>
         <CardContent>
           {delivered.length === 0 ? (
@@ -197,6 +250,8 @@ export default async function TransportPage() {
                   <TableHead>Customer</TableHead>
                   <TableHead>Destination</TableHead>
                   <TableHead>Truck</TableHead>
+                  <TableHead>Driver</TableHead>
+                  <TableHead className="text-right">Trip pay</TableHead>
                   <TableHead>Dispatched</TableHead>
                   <TableHead>Delivered</TableHead>
                   <TableHead className="text-right">Days taken</TableHead>
@@ -209,6 +264,8 @@ export default async function TransportPage() {
                     <TableCell>{s.customerName}</TableCell>
                     <TableCell>{routeById(s.routeId)?.destination ?? s.routeId}</TableCell>
                     <TableCell>{s.vehicleNo}</TableCell>
+                    <TableCell>{s.driverName}</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.tripPayPaise ? formatINR(s.tripPayPaise, { whole: true }) : "—"}</TableCell>
                     <TableCell>{when(s.dispatchedAt)}</TableCell>
                     <TableCell>{s.deliveredAt ? when(s.deliveredAt) : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">

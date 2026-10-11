@@ -22,6 +22,7 @@ import {
   recomputeRolling,
 } from "@/lib/services/recompute";
 import type { Batch, ElectricityReading, MachineDoc, MachineLog, Order, StaffRole as Role } from "@/lib/types";
+import { sampleWorkers } from "./sample-workers";
 
 const DEMO_CLIENT_ORDERS = ["ORD-1001", "ORD-1003"];
 // Made-up addresses for the sample orders.
@@ -282,6 +283,9 @@ async function main() {
     const { id, ...data } = shipment;
     writes.push((b) => b.set(db().collection("shipments").doc(id), data));
   }
+  const sample = sampleWorkers(today);
+  for (const { id, ...data } of sample.workers) writes.push((b) => b.set(db().collection("workers").doc(id), data));
+  for (const p of sample.pay) writes.push((b) => b.set(db().collection("workerPay").doc(p.id), p.data));
   await commitInChunks(writes);
   console.log(`Wrote ${writes.length} documents. Computing energy, efficiency and batch costs...`);
 

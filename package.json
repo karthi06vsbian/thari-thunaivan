@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint",
@@ -15,7 +15,9 @@
     "predev:local": "mkdir -p .emulator-data",
     "preemulators": "mkdir -p .emulator-data",
     "create-user": "tsx --env-file=.env.local scripts/create-user.ts",
-    "seed:firebase": "tsx --env-file=.env.local scripts/seed.ts"
+    "seed:firebase": "tsx --env-file=.env.local scripts/seed.ts",
+    "seed:workers": "tsx --env-file=.env.emulator scripts/seed-workers.ts",
+    "seed:workers:firebase": "tsx --env-file=.env.local scripts/seed-workers.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

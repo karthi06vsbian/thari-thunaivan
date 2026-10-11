@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Kpi, PageHeader } from "@/components/kpi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ACCESS, requireRole } from "@/lib/auth/session";
-import { getAuditLogs, getBatches, getDailyStats, getMachines } from "@/lib/data";
+import { getAuditLogs, getBatches, getDailyStats, getMachines, getOrders, getShiftSettings } from "@/lib/data";
 import { formatDate, todayIso } from "@/lib/dates";
 import { formatINR, formatNumber } from "@/lib/money";
 import { db } from "@/lib/firebase/admin";
@@ -10,7 +10,9 @@ import { Stars } from "@/components/stars";
 import { getRecentChecks, QC_LABEL } from "@/lib/quality";
 import { getAllReviews, PUBLIC_MIN_RATING } from "@/lib/reviews";
 import { ReviewControls } from "./review-controls";
+import { deadlineAlerts } from "@/lib/planning/deadline";
 import { buildAlerts, countStatuses } from "@/lib/reports";
+import { DeadlineAlerts, DUE_WINDOWS } from "./deadline-alerts";
 
 interface Enquiry {
   id: string;
@@ -26,14 +28,15 @@ interface Enquiry {
 export default async function OverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ denied?: string }>;
+  searchParams: Promise<{ denied?: string; due?: string }>;
 }) {
   const user = await requireRole(ACCESS.overview);
-  const { denied } = await searchParams;
+  const { denied, due } = await searchParams;
+  const dueWithin = DUE_WINDOWS.includes(Number(due)) ? Number(due) : 7;
   const today = todayIso();
   const seesAll = ACCESS.planning.includes(user.role);
   // Everything is fetched together so the page waits for the slowest read, not the sum of them.
-  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries, reviews] = await Promise.all([
+  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries, reviews, orders, shifts] = await Promise.all([
     getMachines(),
     getDailyStats(today),
     getBatches(),
@@ -48,6 +51,8 @@ export default async function OverviewPage({
         )
       : null,
     seesAll ? getAllReviews() : null,
+    seesAll ? getOrders() : null,
+    getShiftSettings(),
   ]);
   const counts = countStatuses(machines);
   const activeBatches = batches.filter((b) => b.status === "in_progress" || b.status === "planned");
@@ -82,6 +87,8 @@ export default async function OverviewPage({
         />
         <Kpi label="Batches in production" value={String(activeBatches.length)} hint={`${batches.filter((b) => b.status === "pending").length} waiting for a plan`} />
       </div>
+
+      {orders && <DeadlineAlerts alerts={deadlineAlerts(orders, batches, machines, shifts, today, dueWithin)} within={dueWithin} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

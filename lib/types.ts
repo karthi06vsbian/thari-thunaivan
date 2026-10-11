@@ -235,6 +235,9 @@ export interface Shipment {
   routeId: string;
   vehicleNo: string;
   driverName: string;
+  /** The driver's worker record, and what they are paid for this trip on top of salary. */
+  driverId?: string | null;
+  tripPayPaise?: number;
   status: "in_transit" | "delivered";
   dispatchedAt: string;
   deliveredAt: string | null;
@@ -242,4 +245,61 @@ export interface Shipment {
   /** Demo data: the trip replays in a loop so there is always a moving truck to show. */
   sample?: boolean;
   demoCycleSeconds?: number | null;
+}
+
+export type JobRole = "driver" | "operator" | "supervisor" | "quality" | "mechanic" | "helper" | "office";
+
+export interface Increment {
+  on: IsoDate;
+  fromPaise: number;
+  toPaise: number;
+  note: string;
+  by: string;
+}
+
+/** Someone on the mill's payroll. Drivers are added from the Transport page. */
+export interface Worker {
+  id: string;
+  workerNo: string;
+  name: string;
+  phone: string | null;
+  jobRole: JobRole;
+  joinedOn: IsoDate;
+  /** Salary for a full month of standard hours. */
+  monthlyPaise: number;
+  active: boolean;
+  increments: Increment[];
+  /** Drivers only. */
+  licenceNo?: string | null;
+  vehicleNo?: string | null;
+}
+
+/** One worker's hours and adjustments for one month, stored as workerPay/{workerId}_{YYYY-MM}. */
+export interface WorkerPay {
+  workerId: string;
+  /** YYYY-MM */
+  month: string;
+  hoursWorked: number;
+  bonusPaise: number;
+  bonusNote: string;
+  deductionPaise: number;
+  deductionNote: string;
+  paidAt: string | null;
+  paidBy: string | null;
+  /** Net pay frozen when the month was marked paid. */
+  paidNetPaise: number | null;
+}
+
+export interface PayRules {
+  /** Standard hours in a month; hours beyond this are overtime. */
+  hoursPerMonth: number;
+  overtimeMultiplier: number;
+  /** Service allowance: this % of base pay for every completed year, up to the maximum. */
+  servicePercentPerYear: number;
+  serviceMaxPercent: number;
+  /** New joiners are paid the training % of their salary for this many months. */
+  newJoinerMonths: number;
+  newJoinerPayPercent: number;
+  /** An increment is flagged as due this long after the last one. */
+  incrementEveryMonths: number;
 }

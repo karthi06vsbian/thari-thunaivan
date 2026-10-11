@@ -112,6 +112,6 @@ export async function demoClientLogin(): Promise<TokenResult> {
     return { ok: true, token: await tokenForPhone(client.phone) };
   } catch (err) {
     console.error("demoClientLogin error:", err);
-    return { ok: false, error: "Demo login failed. Try again." };
+    return { ok: false, error: err instanceof Error ? err.message : "Demo login failed. Try again." };
   }
 }
