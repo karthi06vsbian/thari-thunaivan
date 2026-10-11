@@ -106,6 +106,13 @@ export interface AllocationResult {
   eligibleCount: number;
   recommended: PlanOption;
   alternatives: PlanOption[];
+  /** Eligible machines that are not in any other plan. */
+  freeCount: number;
+  /**
+   * Eligible machines kept by other planned or running batches. They cannot be chosen
+   * until those batches are completed.
+   */
+  held: { batchId: string; machines: number; endDate: IsoDate }[];
   /** Meters that cannot be made by the deadline even with every eligible machine. 0 when feasible. */
   shortfallMeters: number;
   /** Set only when the deadline is impossible. */

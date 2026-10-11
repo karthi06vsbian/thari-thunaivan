@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { NativeSelect } from "@/components/kpi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { MachineStatus } from "@/lib/planning/types";
 import { scheduleMaintenance, updateMachineStatus } from "./actions";
@@ -16,6 +17,10 @@ export interface MachineCard {
   type: string;
   status: MachineStatus;
   currentBatchId: string | null;
+  /** The plan holding this machine; it cannot go into another until that plan is completed. */
+  plan: { batchNo: string; orderNo: string; startDate: string; endDate: string; started: boolean; overdue: boolean } | null;
+  /** Further plans the machine is also in. */
+  morePlans: number;
   todayOutput: number;
   todayHours: number;
   efficiencyPercent: number;
@@ -38,11 +43,16 @@ const STATUS_STYLE: Record<MachineStatus, { card: string; dot: string }> = {
 export function MachinesGrid({ machines }: { machines: MachineCard[] }) {
   const [type, setType] = useState("all");
   const [status, setStatus] = useState("all");
+  const [planned, setPlanned] = useState("all");
   const [pending, startTransition] = useTransition();
   const types = useMemo(() => [...new Set(machines.map((m) => m.type))], [machines]);
   const shown = machines.filter(
-    (m) => (type === "all" || m.type === type) && (status === "all" || m.status === status),
+    (m) =>
+      (type === "all" || m.type === type) &&
+      (status === "all" || m.status === status) &&
+      (planned === "all" || (planned === "in" ? !!m.plan : !m.plan)),
   );
+  const inPlan = machines.filter((m) => m.plan).length;
 
   function act(action: () => Promise<{ ok: boolean; error?: string; message?: string }>) {
     startTransition(async () => {
@@ -73,8 +83,16 @@ export function MachinesGrid({ machines }: { machines: MachineCard[] }) {
             ))}
           </NativeSelect>
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          Plan
+          <NativeSelect value={planned} onChange={(e) => setPlanned(e.target.value)}>
+            <option value="all">All machines</option>
+            <option value="in">In a plan</option>
+            <option value="free">Not in a plan</option>
+          </NativeSelect>
+        </label>
         <p className="text-sm text-muted-foreground">
-          Showing {shown.length} of {machines.length}
+          Showing {shown.length} of {machines.length} · {inPlan} in a plan, {machines.length - inPlan} not in a plan
         </p>
       </div>
 
@@ -95,8 +113,21 @@ export function MachinesGrid({ machines }: { machines: MachineCard[] }) {
               </span>
             </div>
             <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-              <dt className="text-muted-foreground">Batch</dt>
-              <dd className="text-right font-medium">{m.currentBatchId ?? "—"}</dd>
+              <dt className="text-muted-foreground">Plan</dt>
+              <dd className="text-right font-medium">
+                {m.plan ? `${m.plan.batchNo} · ${m.plan.orderNo}` : "Not in a plan"}
+                {m.plan && !m.plan.started && <span className="block font-normal text-muted-foreground">not started yet</span>}
+              </dd>
+              <dt className="text-muted-foreground">Start date</dt>
+              <dd className="text-right font-medium">{m.plan ? formatDate(m.plan.startDate, true) : "—"}</dd>
+              <dt className="text-muted-foreground">End date</dt>
+              <dd className={cn("text-right font-medium", m.plan?.overdue && "text-red-700")}>
+                {m.plan ? formatDate(m.plan.endDate, true) : "—"}
+                {m.plan?.overdue && <span className="block font-normal">overdue</span>}
+              </dd>
+              {m.morePlans > 0 && (
+                <dd className="col-span-2 text-right text-muted-foreground">also in {m.morePlans} more plan{m.morePlans === 1 ? "" : "s"}</dd>
+              )}
               <dt className="text-muted-foreground">Output today</dt>
               <dd className="text-right font-medium tabular-nums">
                 {m.todayHours > 0 ? `${Math.round(m.todayOutput).toLocaleString("en-IN")} m` : "—"}

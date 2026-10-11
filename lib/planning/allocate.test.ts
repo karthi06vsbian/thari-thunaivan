@@ -142,17 +142,35 @@ describe("greedy selection with mixed speeds", () => {
     expect(result.recommended.machineIds).toEqual(["M-07"]);
   });
 
-  it("only uses the days a machine is free of other batches", () => {
+  it("never picks a machine that is in another plan", () => {
     const machines = [machine(1), machine(2)];
     const allocations = [
       { machineId: "M-01", batchId: "B-100", startDate: "2026-10-12", endDate: "2026-10-15" },
     ];
-    // M-01 has 2 free days (320 m), M-02 has 6 (960 m)
-    const result = recommendAllocation({ ...inputs, meters: 1_200 }, ctx(machines, { allocations }));
-    expect(result.recommended.feasible).toBe(true);
-    expect(result.recommended.machinesNeeded).toBe(2);
-    const m1 = result.recommended.perMachine.find((p) => p.machineId === "M-01")!;
-    expect(m1.plannedMeters).toBeLessThanOrEqual(320);
+    // M-01 would have 2 days left after B-100's dates, but it stays with B-100 until that is completed.
+    const result = recommendAllocation({ ...inputs, meters: 900 }, ctx(machines, { allocations }));
+    expect(result.recommended.machineIds).toEqual(["M-02"]);
+    expect(result.alternatives.every((o) => !o.machineIds.includes("M-01"))).toBe(true);
+    expect(result.eligibleCount).toBe(2);
+    expect(result.freeCount).toBe(1);
+    expect(result.held).toEqual([{ batchId: "B-100", machines: 1, endDate: "2026-10-15" }]);
+  });
+
+  it("keeps a machine locked even when the other plan's dates do not overlap", () => {
+    const machines = [machine(1), machine(2)];
+    const before = [{ machineId: "M-01", batchId: "B-100", startDate: "2026-10-01", endDate: "2026-10-08" }];
+    const after = [{ machineId: "M-01", batchId: "B-101", startDate: "2026-11-02", endDate: "2026-11-10" }];
+    for (const allocations of [before, after]) {
+      const result = recommendAllocation({ ...inputs, meters: 900 }, ctx(machines, { allocations }));
+      expect(result.recommended.machineIds).toEqual(["M-02"]);
+    }
+  });
+
+  it("offers the machine again once the other batch is completed", () => {
+    // A completed batch is no longer in the allocations.
+    const result = recommendAllocation({ ...inputs, meters: 1_200 }, ctx([machine(1), machine(2)]));
+    expect(result.recommended.machineIds).toEqual(["M-01", "M-02"]);
+    expect(result.held).toEqual([]);
   });
 });
 
@@ -162,13 +180,14 @@ describe("impossible deadline", () => {
     const allocations = [
       { machineId: "M-02", batchId: "B-200", startDate: "2026-10-12", endDate: "2026-10-14" },
     ];
-    // By the deadline: M-01 960 m + M-02 480 m = 1,440 m of 3,000 m
+    // M-02 is in B-200's plan, so only M-01 can be used: 960 m of 3,000 m by the deadline.
     const result = recommendAllocation({ ...inputs, meters: 3_000 }, ctx(machines, { allocations }));
     expect(result.recommended.feasible).toBe(false);
-    expect(result.shortfallMeters).toBe(1_560);
-    // Sunday 18th is off; 320 m/day from Monday 19th -> 1,560 m needs 5 days -> Friday 23rd
-    expect(result.earliestPossibleDate).toBe("2026-10-23");
-    expect(result.warnings.some((w) => w.includes("B-200"))).toBe(true);
+    expect(result.recommended.machineIds).toEqual(["M-01"]);
+    expect(result.shortfallMeters).toBe(2_040);
+    // 160 m a day, six days a week: 3,000 m takes 19 working days -> Monday 2 November
+    expect(result.earliestPossibleDate).toBe("2026-11-02");
+    expect(result.warnings.some((w) => w.includes("B-200") && w.includes("completed"))).toBe(true);
   });
 
   it("recommends overtime when that is the only way to meet the deadline", () => {

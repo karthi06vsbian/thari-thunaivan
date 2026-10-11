@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { run } from "@/lib/action-result";
 import { assertRole } from "@/lib/auth/session";
-import { getOrder } from "@/lib/data";
+import { getBatches, getMaterials, getOrder, getOrders } from "@/lib/data";
 import { formatDate, isIsoDate, todayIso } from "@/lib/dates";
 import { db } from "@/lib/firebase/admin";
 import { formatINR, rupeesToPaise } from "@/lib/money";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/payments/razorpay";
 import { newBatchFor, nextOrderNumbers } from "@/lib/services/orders";
 import { SITE } from "@/lib/site";
+import { maxOrderMeters, MIN_ORDER_METERS } from "@/lib/stock";
 import type { AppUser, Order } from "@/lib/types";
 import { sendToOwners } from "@/lib/whatsapp/send";
 
@@ -28,7 +29,7 @@ const schema = z.object({
   phone: z.string().trim().regex(/^[0-9+ ()-]{7,20}$/, "Enter a valid phone number"),
   fabricType: z.string().refine((v) => SITE.fabrics.some((f) => f.value === v), "Choose a fabric"),
   widthInches: z.number().min(20, "Width must be at least 20 inches").max(140, "Width must be 140 inches or less"),
-  meters: z.number().min(100, "Minimum order is 100 meters").max(1_000_000),
+  meters: z.number().min(MIN_ORDER_METERS, `Minimum order is ${MIN_ORDER_METERS} meters`).max(1_000_000),
   deadline: z.string().refine(isIsoDate, "Choose the date you need it by"),
   notes: z.string().trim().max(1000),
   deliveryAddress: z.string().trim().min(10, "Enter the full delivery address").max(300),
@@ -90,6 +91,16 @@ export async function placeOrder(input: z.infer<typeof schema>) {
     }
 
     const fabric = SITE.fabrics.find((f) => f.value === o.fabricType)!;
+    // An order the store room cannot supply is turned away before it is created.
+    const [materials, orders, batches] = await Promise.all([getMaterials(), getOrders(), getBatches()]);
+    const maxMeters = maxOrderMeters(o.fabricType, materials, orders, batches);
+    if (maxMeters !== null && o.meters > maxMeters) {
+      throw new Error(
+        maxMeters < MIN_ORDER_METERS
+          ? `Sorry, ${fabric.name} is out of stock right now. Please try again later or call us.`
+          : `We have material for up to ${maxMeters.toLocaleString("en-IN")} m of ${fabric.name} right now. Please reduce the quantity or call us.`,
+      );
+    }
     const { orderNo } = await nextOrderNumbers();
     const advancePaise = advanceFor(o.meters, fabric.ratePerMeter, SITE.advancePercent);
     const order: Order = {

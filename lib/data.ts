@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@/lib/firebase/admin";
 import type { ExistingAllocation, IsoDate, ShiftSettings } from "@/lib/planning/types";
 import type {
@@ -6,6 +7,7 @@ import type {
   AuditLog,
   Batch,
   DailyStats,
+  DayLogTotals,
   ElectricityReading,
   ElectricitySettings,
   MachineDoc,
@@ -13,6 +15,7 @@ import type {
   Material,
   Order,
   RateHistoryEntry,
+  StockOrder,
 } from "@/lib/types";
 
 export const DEFAULT_SHIFTS: ShiftSettings = {
@@ -41,21 +44,28 @@ async function list<T>(query: Query): Promise<T[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as T);
 }
 
-export async function getMachines(): Promise<MachineDoc[]> {
+// The getters wrapped in cache() read the database once per page view, however many parts of
+// the page ask for the same thing. Every read counts against the database's daily allowance,
+// and a page such as the Overview used to read all the machines three times over.
+// Nothing is remembered between page views, so a page never shows data older than its own load.
+
+export const getMachines = cache(async (): Promise<MachineDoc[]> => {
   const machines = await list<MachineDoc>(db().collection("machines"));
   return machines.sort((a, b) => a.machineNo.localeCompare(b.machineNo));
-}
+});
 
-export function getLogsByDate(date: IsoDate): Promise<MachineLog[]> {
+export const getLogsByDate = cache((date: IsoDate): Promise<MachineLog[]> => {
   return list<MachineLog>(db().collection("machineLogs").where("date", "==", date));
+});
+
+/** Day totals (see lib/costing/log-totals.ts) from a date onwards: one document per day. */
+export function getLogTotalsSince(date: IsoDate): Promise<DayLogTotals[]> {
+  return list<DayLogTotals>(db().collection("logTotals").where("date", ">=", date));
 }
 
-export function getLogsSince(date: IsoDate): Promise<MachineLog[]> {
-  return list<MachineLog>(db().collection("machineLogs").where("date", ">=", date));
-}
-
-export function getLogsByBatch(batchId: string): Promise<MachineLog[]> {
-  return list<MachineLog>(db().collection("machineLogs").where("batchId", "==", batchId));
+/** Day totals for every day a batch has logs on. */
+export function getLogTotalsForBatch(batchId: string): Promise<DayLogTotals[]> {
+  return list<DayLogTotals>(db().collection("logTotals").where("batchIds", "array-contains", batchId));
 }
 
 export async function getReading(date: IsoDate): Promise<ElectricityReading | null> {
@@ -70,25 +80,25 @@ export async function getReadingsSince(date: IsoDate): Promise<ElectricityReadin
   return rows.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export async function getDailyStatsSince(date: IsoDate): Promise<DailyStats[]> {
+export const getDailyStatsSince = cache(async (date: IsoDate): Promise<DailyStats[]> => {
   const rows = await list<DailyStats>(db().collection("dailyStats").where("date", ">=", date));
   return rows.sort((a, b) => a.date.localeCompare(b.date));
-}
+});
 
-export async function getDailyStats(date: IsoDate): Promise<DailyStats | null> {
+export const getDailyStats = cache(async (date: IsoDate): Promise<DailyStats | null> => {
   const snap = await db().collection("dailyStats").doc(date).get();
   return snap.exists ? (snap.data() as DailyStats) : null;
-}
+});
 
-export async function getOrders(): Promise<Order[]> {
+export const getOrders = cache(async (): Promise<Order[]> => {
   const orders = await list<Order>(db().collection("orders"));
   return orders.sort((a, b) => a.orderNo.localeCompare(b.orderNo));
-}
+});
 
-export async function getBatches(): Promise<Batch[]> {
+export const getBatches = cache(async (): Promise<Batch[]> => {
   const batches = await list<Batch>(db().collection("batches"));
   return batches.sort((a, b) => a.batchNo.localeCompare(b.batchNo));
-}
+});
 
 export async function getBatch(id: string): Promise<Batch | null> {
   const snap = await db().collection("batches").doc(id).get();
@@ -100,15 +110,15 @@ export async function getOrder(id: string): Promise<Order | null> {
   return snap.exists ? ({ id: snap.id, ...snap.data() } as Order) : null;
 }
 
-export async function getShiftSettings(): Promise<ShiftSettings> {
+export const getShiftSettings = cache(async (): Promise<ShiftSettings> => {
   const snap = await db().collection("settings").doc("shifts").get();
   return snap.exists ? (snap.data() as ShiftSettings) : DEFAULT_SHIFTS;
-}
+});
 
-export async function getElectricitySettings(): Promise<ElectricitySettings> {
+export const getElectricitySettings = cache(async (): Promise<ElectricitySettings> => {
   const snap = await db().collection("settings").doc("electricity").get();
   return snap.exists ? (snap.data() as ElectricitySettings) : DEFAULT_ELECTRICITY;
-}
+});
 
 export async function getRateHistory(): Promise<RateHistoryEntry[]> {
   const rows = await list<RateHistoryEntry>(db().collection("electricityRateHistory"));
@@ -118,6 +128,17 @@ export async function getRateHistory(): Promise<RateHistoryEntry[]> {
 export async function getMaterials(): Promise<Material[]> {
   const materials = await list<Material>(db().collection("materials"));
   return materials.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Every stock order, newest first. */
+export async function getStockOrders(): Promise<StockOrder[]> {
+  const rows = await list<StockOrder>(db().collection("stockOrders"));
+  return rows.sort((a, b) => b.orderedAt.localeCompare(a.orderedAt));
+}
+
+export async function getStockOrder(trackingId: string): Promise<StockOrder | null> {
+  const snap = await db().collection("stockOrders").doc(trackingId).get();
+  return snap.exists ? ({ id: snap.id, ...snap.data() } as StockOrder) : null;
 }
 
 export function getAuditLogs(limit = 20): Promise<AuditLog[]> {

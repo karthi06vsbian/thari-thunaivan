@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DEMO_LOGINS, DEMO_PASSWORD } from "@/lib/auth/demo-logins";
 import { useSignIn } from "@/lib/auth/use-sign-in";
 import { clientAuth } from "@/lib/firebase/client";
 import { SITE } from "@/lib/site";
@@ -16,8 +17,8 @@ import { cn } from "@/lib/utils";
 
 // Who is signing in. The ID must really hold the chosen access, or the sign-in is refused.
 const ACCESS_LEVELS: { role: StaffRole; label: string; icon: typeof Crown; opens: string; demoId: string }[] = [
-  { role: "owner", label: "Owner", icon: Crown, opens: "Full dashboard: every page, costs and WhatsApp", demoId: "owner@tharithunaivan.com" },
-  { role: "production", label: "Supervisor", icon: HardHat, opens: "Production logs and quality check", demoId: "staff@tharithunaivan.com" },
+  { role: "owner", label: "Owner", icon: Crown, opens: "Full dashboard: every page, costs and WhatsApp", demoId: DEMO_LOGINS.owner! },
+  { role: "production", label: "Supervisor", icon: HardHat, opens: "Production logs and quality check", demoId: DEMO_LOGINS.production! },
 ];
 
 /**
@@ -26,7 +27,6 @@ const ACCESS_LEVELS: { role: StaffRole; label: string; icon: typeof Crown; opens
  * passwords) before the system holds real data.
  */
 const DEMO_FILL = process.env.NEXT_PUBLIC_DEMO_LOGIN !== "off";
-const DEMO_PASSWORD = "password123";
 
 /**
  * One sign-in for all mill staff. The account decides what opens: the owner

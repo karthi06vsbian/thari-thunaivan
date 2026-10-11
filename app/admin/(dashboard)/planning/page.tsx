@@ -10,7 +10,7 @@ import { addDays, formatDate, isIsoDate, todayIso } from "@/lib/dates";
 import { formatINR, formatNumber } from "@/lib/money";
 import type { PlanOption } from "@/lib/planning/types";
 import { computePlan } from "@/lib/services/planning";
-import { PlanButtons } from "./plan-buttons";
+import { ActivePlanButtons, PlanButtons } from "./plan-buttons";
 import { Timeline } from "./timeline";
 
 function OptionDetails({ option }: { option: PlanOption }) {
@@ -105,7 +105,11 @@ export default async function PlanningPage({
   const options = plan ? [plan.result.recommended, ...plan.result.alternatives] : [];
   const rec = plan?.result.recommended;
 
-  const allocations = allocationsFromBatches(batches, selected?.id);
+  const allocations = allocationsFromBatches(batches, selected?.id)
+    // A batch running past its planned end still holds its machines today.
+    .map((a) => (a.endDate < today ? { ...a, endDate: today } : a));
+  const active = batches.filter((b) => b.status === "planned" || b.status === "in_progress");
+  const heldCount = plan ? plan.result.held.reduce((sum, h) => sum + h.machines, 0) : 0;
   const lastEnd = allocations.reduce((max, a) => (a.endDate > max ? a.endDate : max), addDays(today, 14));
   const timelineTo = [lastEnd, plan?.order.deadline, rec?.estimatedFinishDate]
     .filter((d): d is string => !!d)
@@ -170,11 +174,18 @@ export default async function PlanningPage({
               {formatNumber(Math.round(rec.estimatedUnits))} kWh ≈ {formatINR(rec.estimatedPowerCostPaise, { whole: true })}
             </CardTitle>
             <CardDescription>
-              {plan.result.eligibleCount} machines can run this fabric and width · power cost{" "}
-              {formatINR(rec.powerCostPerMeterPaise)} per meter · {rec.hoursPerDay} hours a day
+              {plan.result.eligibleCount} machines can run this fabric and width, {plan.result.freeCount} of them free to choose ·
+              power cost {formatINR(rec.powerCostPerMeterPaise)} per meter · {rec.hoursPerDay} hours a day
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* When the deadline cannot be met, the warning below already says which plans hold the machines. */}
+            {heldCount > 0 && plan.result.shortfallMeters === 0 && (
+              <p className="rounded-lg border bg-muted/50 px-3 py-2 text-sm">
+                🔒 {heldCount} suitable machine{heldCount === 1 ? " is" : "s are"} in another plan and cannot be chosen until that plan is completed:{" "}
+                {plan.result.held.map((h) => `${h.batchId} (${h.machines}, planned to end ${formatDate(h.endDate)})`).join(" · ")}.
+              </p>
+            )}
             {plan.result.warnings.map((w) => (
               <p key={w} role="alert" className="rounded-lg border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm">
                 {w}
@@ -210,6 +221,62 @@ export default async function PlanningPage({
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Plans in progress</CardTitle>
+          <CardDescription>
+            Machines in these plans cannot be chosen for another order. Mark a plan completed, or remove it, to free its machines.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {active.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No plan is running. Every working machine is free to choose.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Batch</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead className="text-right">Machines</TableHead>
+                  <TableHead>Start date</TableHead>
+                  <TableHead>End date</TableHead>
+                  <TableHead>Produced</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {active.map((b) => {
+                  const percent = b.meters > 0 ? Math.min(100, Math.floor((b.producedMeters / b.meters) * 100)) : 0;
+                  const late = !!b.endDate && b.endDate < today;
+                  return (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-medium">
+                        {b.batchNo}
+                        <span className="block text-xs font-normal text-muted-foreground">{b.orderNo} · {b.status === "planned" ? "not started" : "running"}</span>
+                      </TableCell>
+                      <TableCell>{orderById.get(b.orderId)?.customerName}</TableCell>
+                      <TableCell className="text-right tabular-nums">{b.machineIds.length}</TableCell>
+                      <TableCell>{formatDate(b.startDate, true)}</TableCell>
+                      <TableCell>
+                        {formatDate(b.endDate, true)}
+                        {late && <span className="ml-2 font-medium text-red-700">overdue</span>}
+                      </TableCell>
+                      <TableCell>
+                        {formatNumber(Math.round(b.producedMeters))} / {formatNumber(b.meters)} m · {percent}%
+                        {percent >= 100 && <span className="block text-xs font-medium text-teal">All meters produced. Ready to mark completed.</span>}
+                      </TableCell>
+                      <TableCell>
+                        <ActivePlanButtons batchId={b.id} batchNo={b.batchNo} orderNo={b.orderNo} machines={b.machineIds.length} percent={percent} />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

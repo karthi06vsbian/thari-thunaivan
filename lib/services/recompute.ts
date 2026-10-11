@@ -1,17 +1,18 @@
 import { db } from "@/lib/firebase/admin";
+import { dayLogTotals, sumBatchTotals, sumMachineTotals } from "@/lib/costing/log-totals";
 import { splitEnergyAcrossLogs } from "@/lib/costing/power";
 import { addDays } from "@/lib/planning/calendar";
 import { estimateUnits, scaleEnergyToMainMeter, utilizationPercent } from "@/lib/planning/energy";
 import type { IsoDate } from "@/lib/planning/types";
 import {
   getElectricitySettings,
-  getLogsByBatch,
   getLogsByDate,
-  getLogsSince,
+  getLogTotalsForBatch,
+  getLogTotalsSince,
   getMachines,
   getReading,
 } from "@/lib/data";
-import type { DailyStats, MachineDoc } from "@/lib/types";
+import type { DailyStats, MachineDoc, MachineLog } from "@/lib/types";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const BATCH_LIMIT = 400;
@@ -24,6 +25,43 @@ export async function commitInChunks(writes: Write[]): Promise<void> {
     for (const write of writes.slice(i, i + BATCH_LIMIT)) write(batch);
     await batch.commit();
   }
+}
+
+// Day totals: recomputeDay keeps one small document per day with that day's logs added up by
+// machine and by batch. The 30-day machine figures and each batch's totals are then summed
+// from a few dozen of these instead of re-reading every log, which used to cost well over a
+// thousand database reads each time a shift's logs were saved.
+const totalsReadyRef = () => db().collection("settings").doc("logTotals");
+let totalsReady = false;
+
+/**
+ * Builds the day totals for every day that has logs. Needed once for logs entered before day
+ * totals existed, and it is the repair for totals that have drifted from the logs.
+ */
+export async function rebuildLogTotals(): Promise<number> {
+  const snap = await db().collection("machineLogs").get();
+  const byDate = new Map<string, MachineLog[]>();
+  for (const d of snap.docs) {
+    const log = { id: d.id, ...d.data() } as MachineLog;
+    byDate.set(log.date, [...(byDate.get(log.date) ?? []), log]);
+  }
+  await commitInChunks(
+    [...byDate].map(([date, logs]) => (b) => b.set(db().collection("logTotals").doc(date), dayLogTotals(date, logs))),
+  );
+  await markLogTotalsReady();
+  return byDate.size;
+}
+
+/** Records that every day with logs has its totals, so they can be trusted without a rebuild. */
+export async function markLogTotalsReady(): Promise<void> {
+  await totalsReadyRef().set({ builtAt: new Date().toISOString() });
+  totalsReady = true;
+}
+
+async function ensureLogTotals(): Promise<void> {
+  if (totalsReady) return;
+  if ((await totalsReadyRef().get()).exists) totalsReady = true;
+  else await rebuildLogTotals();
 }
 
 /**
@@ -95,6 +133,12 @@ export async function recomputeDay(date: IsoDate, machinesIn?: MachineDoc[]): Pr
     writes.push((b) => b.update(ref, { units: share.units, powerCostPaise: share.costPaise }));
   }
   writes.push((b) => b.set(db().collection("dailyStats").doc(date), stats));
+  // The day's totals carry the energy shares worked out above, not the ones last saved on the logs.
+  const totals = dayLogTotals(
+    date,
+    logs.map((l) => ({ ...l, units: logShares.get(l.id)!.units, powerCostPaise: logShares.get(l.id)!.costPaise })),
+  );
+  writes.push((b) => b.set(db().collection("logTotals").doc(date), totals));
   if (reading) {
     const ref = db().collection("electricityReadings").doc(date);
     writes.push((b) =>
@@ -111,30 +155,24 @@ export async function recomputeDay(date: IsoDate, machinesIn?: MachineDoc[]): Pr
 
 /** Batch power cost = energy cost of its machines for the hours logged against it. */
 export async function recomputeBatchPower(batchId: string): Promise<void> {
-  const logs = await getLogsByBatch(batchId);
+  await ensureLogTotals();
+  const totals = sumBatchTotals(await getLogTotalsForBatch(batchId), batchId);
   const ref = db().collection("batches").doc(batchId);
   if (!(await ref.get()).exists) return;
   await ref.update({
-    powerCostPaise: logs.reduce((sum, l) => sum + (l.powerCostPaise ?? 0), 0),
-    producedMeters: round2(logs.reduce((sum, l) => sum + l.outputMeters, 0)),
+    powerCostPaise: totals.costPaise,
+    producedMeters: round2(totals.output),
   });
 }
 
 /** Rolling 30-day efficiency, breakdown hours and energy per meter for every machine. */
 export async function recomputeRolling(today: IsoDate, machinesIn?: MachineDoc[]): Promise<void> {
-  const [machines, logs] = await Promise.all([
+  await ensureLogTotals();
+  const [machines, days] = await Promise.all([
     machinesIn ?? getMachines(),
-    getLogsSince(addDays(today, -29)),
+    getLogTotalsSince(addDays(today, -29)),
   ]);
-  const totals = new Map<string, { output: number; hours: number; breakdown: number; units: number }>();
-  for (const l of logs) {
-    const t = totals.get(l.machineId) ?? { output: 0, hours: 0, breakdown: 0, units: 0 };
-    t.output += l.outputMeters;
-    t.hours += l.runningHours;
-    t.breakdown += l.breakdownHours;
-    t.units += l.units ?? 0;
-    totals.set(l.machineId, t);
-  }
+  const totals = sumMachineTotals(days);
   const writes: Write[] = [];
   for (const m of machines) {
     const t = totals.get(m.id);

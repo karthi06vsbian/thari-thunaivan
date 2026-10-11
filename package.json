@@ -19,7 +19,10 @@
     "seed:workers": "tsx --env-file=.env.emulator scripts/seed-workers.ts",
     "seed:workers:firebase": "tsx --env-file=.env.local scripts/seed-workers.ts",
     "seed:materials": "tsx --env-file=.env.emulator scripts/seed-materials.ts",
-    "seed:materials:firebase": "tsx --env-file=.env.local scripts/seed-materials.ts"
+    "seed:materials:firebase": "tsx --env-file=.env.local scripts/seed-materials.ts",
+    "seed:stock-orders": "tsx --env-file=.env.emulator scripts/seed-stock-orders.ts",
+    "seed:stock-orders:firebase": "tsx --env-file=.env.local scripts/seed-stock-orders.ts",
+    "rebuild:totals": "tsx --env-file=.env.local scripts/rebuild-log-totals.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

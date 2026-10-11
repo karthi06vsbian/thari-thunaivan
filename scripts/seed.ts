@@ -5,6 +5,7 @@
  *   npm run seed            # only if the database is empty
  *   npm run seed -- --force # wipe the emulator data and seed again
  */
+import { DEMO_LOGINS, DEMO_PASSWORD } from "@/lib/auth/demo-logins";
 import { adminAuth, db, projectId } from "@/lib/firebase/admin";
 import { DEFAULT_ELECTRICITY, DEFAULT_SHIFTS } from "@/lib/data";
 import { todayIso } from "@/lib/dates";
@@ -17,12 +18,13 @@ import { sampleShipments } from "@/lib/transport/data";
 import { CLIENTS } from "@/lib/whatsapp/numbers";
 import {
   commitInChunks,
+  markLogTotalsReady,
   recomputeBatchPower,
   recomputeDay,
   recomputeRolling,
 } from "@/lib/services/recompute";
 import type { Batch, ElectricityReading, MachineDoc, MachineLog, Order, StaffRole as Role } from "@/lib/types";
-import { sampleMaterials } from "./sample-materials";
+import { sampleMaterials, sampleStockOrders } from "./sample-materials";
 import { sampleWorkers } from "./sample-workers";
 
 const DEMO_CLIENT_ORDERS = ["ORD-1001", "ORD-1003"];
@@ -131,14 +133,12 @@ async function main() {
   if (force && !onEmulator) throw new Error("--force (wipe) only works on the emulators");
   if (force) await wipe();
 
-  // Test users with a shared demo password exist only on the emulators.
+  // The demo logins from the sign-in page are created only on the emulators.
   // On a real project, add people with "npm run create-user".
   if (onEmulator) {
-    const password = process.env.SEED_USER_PASSWORD;
-    if (!password) throw new Error("SEED_USER_PASSWORD is not set (see .env.emulator)");
     for (const u of USERS) {
-      const email = `${u.uid}@textileflow.test`;
-      await adminAuth().createUser({ uid: u.uid, email, password, displayName: u.name }).catch(() => undefined);
+      const email = DEMO_LOGINS[u.role]!;
+      await adminAuth().createUser({ uid: u.uid, email, password: DEMO_PASSWORD, displayName: u.name }).catch(() => undefined);
       await db().collection("users").doc(u.uid).set({ email, name: u.name, role: u.role, phone: u.phone ?? null });
     }
   }
@@ -170,7 +170,9 @@ async function main() {
       shiftsPerDay: SHIFTS_PER_DAY, allowOvertime: true,
     };
     const result = recommendAllocation(inputs, {
-      machines, allocations, shiftSettings, ratePerUnitPaise: DEFAULT_ELECTRICITY.ratePerUnitPaise,
+      // Machines stay with a batch until it is finished, so only batches done by this start date release theirs.
+      machines, allocations: allocations.filter((a) => a.endDate >= inputs.startDate), shiftSettings,
+      ratePerUnitPaise: DEFAULT_ELECTRICITY.ratePerUnitPaise,
     });
     const plan = result.recommended;
     const applied = state !== "new";
@@ -284,6 +286,7 @@ async function main() {
     writes.push((b) => b.set(db().collection("shipments").doc(id), data));
   }
   for (const { id, ...data } of sampleMaterials("Seed script")) writes.push((b) => b.set(db().collection("materials").doc(id), data));
+  for (const { id, ...data } of sampleStockOrders(today, "Karthikeyan (Owner)")) writes.push((b) => b.set(db().collection("stockOrders").doc(id), data));
   const sample = sampleWorkers(today);
   for (const { id, ...data } of sample.workers) writes.push((b) => b.set(db().collection("workers").doc(id), data));
   for (const p of sample.pay) writes.push((b) => b.set(db().collection("workerPay").doc(p.id), p.data));
@@ -291,6 +294,8 @@ async function main() {
   console.log(`Wrote ${writes.length} documents. Computing energy, efficiency and batch costs...`);
 
   for (const date of dates) await recomputeDay(date, machines);
+  // Every day with logs has just been recomputed, so its totals exist.
+  await markLogTotalsReady();
   await recomputeRolling(today, machines);
   for (const b of batches) await recomputeBatchPower(b.id);
 
@@ -300,7 +305,7 @@ async function main() {
   });
   console.log(
     onEmulator
-      ? "Seed complete. Sign in with owner@textileflow.test (password: SEED_USER_PASSWORD in .env.emulator)."
+      ? `Seed complete. Sign in with ${DEMO_LOGINS.owner} (the Owner button on the sign-in page fills it in).`
       : `Seed complete on ${projectId}. Add a login with: npm run create-user`,
   );
 }

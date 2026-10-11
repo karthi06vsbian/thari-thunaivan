@@ -7,6 +7,7 @@ import { writeAudit } from "@/lib/audit";
 import { ACCESS, assertRole } from "@/lib/auth/session";
 import { isIsoDate, todayIso } from "@/lib/dates";
 import { db } from "@/lib/firebase/admin";
+import { completeBatch, removePlan } from "@/lib/services/batches";
 import { computePlan } from "@/lib/services/planning";
 import { planDocFrom } from "@/lib/services/plans";
 
@@ -78,5 +79,31 @@ export async function savePlan(input: z.infer<typeof schema>) {
         ? `Plan applied: ${chosen.machinesNeeded} machines assigned to ${batch.batchNo}`
         : "Draft plan saved",
     };
+  });
+}
+
+/** Marks a batch as finished, which frees its machines for new plans. */
+export async function completePlan(batchId: string) {
+  return run(async () => {
+    const user = await assertRole(ACCESS.planning);
+    const batch = await completeBatch(batchId, todayIso());
+    const machines = batch.machineIds.length;
+    await writeAudit(user, "complete-batch", "batch", batch.batchNo, `${Math.round(batch.producedMeters)} of ${batch.meters} m, ${machines} machines freed`);
+    revalidatePath("/admin", "layout");
+    revalidatePath("/portal", "layout");
+    return { message: `${batch.batchNo} completed. ${machines} machine${machines === 1 ? " is" : "s are"} free for a new plan.` };
+  });
+}
+
+/** Takes a plan off a batch without finishing it, which frees its machines. */
+export async function cancelPlan(batchId: string) {
+  return run(async () => {
+    const user = await assertRole(ACCESS.planning);
+    const batch = await removePlan(batchId);
+    const machines = batch.machineIds.length;
+    await writeAudit(user, "remove-plan", "batch", batch.batchNo, `${machines} machines freed`);
+    revalidatePath("/admin", "layout");
+    revalidatePath("/portal", "layout");
+    return { message: `Plan removed from ${batch.batchNo}. ${machines} machine${machines === 1 ? " is" : "s are"} free again.` };
   });
 }

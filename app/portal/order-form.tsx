@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MIN_ORDER_METERS } from "@/lib/stock";
 import { cn } from "@/lib/utils";
 import { placeOrder } from "./actions";
 import { payForOrder } from "./pay";
@@ -34,6 +35,8 @@ export interface FabricChoice {
   ratePerMeter: number;
   image: string;
   detail: string;
+  /** Most the mill has material for right now; null when there is no limit. */
+  maxMeters: number | null;
 }
 
 export function OrderForm({
@@ -84,7 +87,10 @@ export function OrderForm({
     if (s === 0 && !fabric) return "Choose a fabric to continue.";
     if (s === 1) {
       if (!(Number(width) >= 20 && Number(width) <= 140)) return "Enter a width between 20 and 140 inches.";
-      if (!(Number(meters) >= 100)) return "The minimum order is 100 meters.";
+      if (!(Number(meters) >= MIN_ORDER_METERS)) return `The minimum order is ${MIN_ORDER_METERS} meters.`;
+      if (fabric && fabric.maxMeters !== null && Number(meters) > fabric.maxMeters) {
+        return `We have material for up to ${fabric.maxMeters.toLocaleString("en-IN")} m of ${fabric.name} right now. Reduce the quantity or call us.`;
+      }
     }
     if (s === 2) {
       if (!deadline || deadline < minDate) return "Choose the date you need the fabric by.";
@@ -194,12 +200,14 @@ export function OrderForm({
             <div className="grid grid-cols-2 gap-3 sm:gap-4" role="radiogroup" aria-label="Fabric">
               {fabrics.map((f) => {
                 const picked = f.value === fabricType;
+                const outOfStock = f.maxMeters !== null && f.maxMeters < MIN_ORDER_METERS;
                 return (
                   <button
                     key={f.value}
                     type="button"
                     role="radio"
                     aria-checked={picked}
+                    disabled={outOfStock}
                     onClick={() => {
                       setFabricType(f.value);
                       setError("");
@@ -207,6 +215,7 @@ export function OrderForm({
                     className={cn(
                       "lift group relative overflow-hidden rounded-2xl border-2 bg-card p-2 text-left",
                       picked ? "border-brand bg-brand-soft shadow-lg shadow-brand/20" : "border-border",
+                      outOfStock && "cursor-not-allowed opacity-60",
                     )}
                   >
                     <span className="relative block aspect-[16/9] overflow-hidden rounded-xl">
@@ -220,6 +229,7 @@ export function OrderForm({
                     <span className="block px-1 pt-2 pb-1">
                       <span className="block font-semibold">{f.name}</span>
                       <span className="block text-sm font-medium text-brand">{inr(f.ratePerMeter)}/m</span>
+                      {outOfStock && <span className="mt-1 inline-block rounded-full bg-red-600 px-2 py-0.5 text-xs font-medium text-white">Out of stock</span>}
                       <span className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{f.detail}</span>
                     </span>
                   </button>
@@ -244,7 +254,12 @@ export function OrderForm({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="meters">Quantity (meters)</Label>
-                <Input id="meters" type="number" min={100} step="1" inputMode="numeric" value={meters} onChange={(e) => setMeters(e.target.value)} className="h-11 text-lg" />
+                <Input id="meters" type="number" min={MIN_ORDER_METERS} max={fabric.maxMeters ?? undefined} step="1" inputMode="numeric" value={meters} onChange={(e) => setMeters(e.target.value)} className="h-11 text-lg" />
+                {fabric.maxMeters !== null && (
+                  <p className={cn("text-xs", Number(meters) > fabric.maxMeters ? "font-medium text-red-700" : "text-muted-foreground")}>
+                    Up to {fabric.maxMeters.toLocaleString("en-IN")} m in stock now.
+                  </p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 overflow-hidden rounded-2xl" aria-live="polite">

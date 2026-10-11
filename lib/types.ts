@@ -72,6 +72,8 @@ export interface Batch {
   endDate: IsoDate | null;
   hoursPerDay: number | null;
   planId: string | null;
+  /** The day the batch was marked completed and its machines were freed. */
+  completedOn?: IsoDate | null;
   materialCostPaise: number;
   labourCostPaise: number;
   overheadCostPaise: number;
@@ -93,6 +95,18 @@ export interface MachineLog {
   /** Share of the machine's energy for the day, set when the day is recomputed. */
   units?: number;
   powerCostPaise?: number;
+}
+
+/**
+ * One day's production log totals, stored as logTotals/{date}. Rolling machine figures and
+ * batch totals are added up from these instead of re-reading every log.
+ */
+export interface DayLogTotals {
+  date: IsoDate;
+  machines: Record<string, { output: number; hours: number; breakdown: number; units: number }>;
+  batches: Record<string, { output: number; costPaise: number }>;
+  /** The batch ids above, so the days a batch ran on can be queried. */
+  batchIds: string[];
 }
 
 export interface ElectricityReading {
@@ -320,4 +334,35 @@ export interface Material {
   usePerMeter: number;
   updatedAt: string;
   updatedBy: string;
+}
+
+export type StockOrderStatus = "ordered" | "confirmed" | "dispatched" | "received" | "cancelled";
+
+/** One step or note in a stock order's history. */
+export interface StockOrderEvent {
+  /** The order's status when this was recorded. */
+  status: StockOrderStatus;
+  at: string;
+  by: string;
+  note: string;
+}
+
+/** Raw material bought from a supplier, followed by its tracking ID until it reaches the store. */
+export interface StockOrder {
+  /** Same as the tracking ID. */
+  id: string;
+  trackingId: string;
+  materialId: string;
+  materialName: string;
+  unit: string;
+  quantity: number;
+  supplier: string;
+  /** Price agreed per unit, in paise; 0 when not entered. */
+  ratePaise: number;
+  expectedOn: IsoDate;
+  status: StockOrderStatus;
+  orderedAt: string;
+  orderedBy: string;
+  receivedAt: string | null;
+  events: StockOrderEvent[];
 }

@@ -2,6 +2,7 @@ import { addDays, isWorkingDay, shiftHours, workingDaysBetween } from "./calenda
 import type {
   AllocationResult,
   DayPlan,
+  ExistingAllocation,
   IsoDate,
   Machine,
   MachinePlan,
@@ -100,23 +101,31 @@ export function recommendAllocation(inputs: PlanInputs, ctx: PlanContext): Alloc
   const overtimeHours = baseHours + (inputs.overtimeHoursPerDay ?? DEFAULT_OVERTIME_HOURS);
   const windowDays = workingDaysBetween(inputs.startDate, inputs.deadline, shiftSettings);
 
-  const busy = new Map<string, { startDate: IsoDate; endDate: IsoDate; batchId: string }[]>();
+  // A machine in another planned or running batch stays with that batch until it is completed,
+  // whatever dates its plan covers. Completed batches are not in `allocations`.
+  const heldBy = new Map<string, ExistingAllocation>();
   for (const a of allocations) {
-    const list = busy.get(a.machineId) ?? [];
-    list.push(a);
-    busy.set(a.machineId, list);
+    const current = heldBy.get(a.machineId);
+    if (!current || a.endDate > current.endDate) heldBy.set(a.machineId, a);
   }
   // Maintenance takes the machine out for the day it falls due.
-  const isFree = (m: Machine, day: IsoDate) =>
-    m.maintenanceDueAt !== day &&
-    !(busy.get(m.id) ?? []).some((a) => a.startDate <= day && day <= a.endDate);
+  const isFree = (m: Machine, day: IsoDate) => m.maintenanceDueAt !== day;
 
   const freeDays = (m: Machine) => windowDays.filter((d) => isFree(m, d)).length;
   const capacity = (hoursPerDay: number) => (m: Machine) =>
     effectiveRate(m) * hoursPerDay * freeDays(m);
 
   const eligible = eligibleMachines(inputs, ctx.machines);
-  const usable = eligible.filter((m) => freeDays(m) > 0);
+  const free = eligible.filter((m) => !heldBy.has(m.id));
+  const usable = free.filter((m) => freeDays(m) > 0);
+  const heldGroups = new Map<string, { batchId: string; machines: number; endDate: IsoDate }>();
+  for (const m of eligible) {
+    const a = heldBy.get(m.id);
+    if (!a) continue;
+    const group = heldGroups.get(a.batchId) ?? { batchId: a.batchId, machines: 0, endDate: a.endDate };
+    heldGroups.set(a.batchId, { ...group, machines: group.machines + 1, endDate: a.endDate > group.endDate ? a.endDate : group.endDate });
+  }
+  const held = [...heldGroups.values()].sort((a, b) => a.batchId.localeCompare(b.batchId));
   const ranked = rankMachines(usable);
   const totalCapacity = (hoursPerDay: number) =>
     usable.reduce((sum, m) => sum + capacity(hoursPerDay)(m), 0);
@@ -240,8 +249,8 @@ export function recommendAllocation(inputs: PlanInputs, ctx: PlanContext): Alloc
     alternatives.push(simulate("fastest", "Fastest finish without overtime", usable, baseHours));
   } else {
     const bestHours = inputs.allowOvertime ? overtimeHours : baseHours;
-    // Includes machines with no free day before the deadline: they can still help after it.
-    recommended = simulate("fastest", "Fastest finish (all free machines)", rankMachines(eligible), bestHours);
+    // Includes free machines with no working day left before the deadline: they can still help after it.
+    recommended = simulate("fastest", "Fastest finish (all free machines)", rankMachines(free), bestHours);
     shortfallMeters = round2(inputs.meters - totalCapacity(bestHours));
     const short = Math.round(shortfallMeters).toLocaleString("en-IN");
     earliestPossibleDate = recommended.estimatedFinishDate;
@@ -250,16 +259,12 @@ export function recommendAllocation(inputs: PlanInputs, ctx: PlanContext): Alloc
         ? `Deadline cannot be met: ${short} m short. Earliest possible finish is ${earliestPossibleDate}.`
         : `Deadline cannot be met: ${short} m short and no eligible machine capacity was found.`,
     );
-    const blocking = new Set<string>();
-    for (const m of eligible) {
-      for (const a of busy.get(m.id) ?? []) {
-        if (a.startDate <= inputs.deadline && a.endDate >= inputs.startDate) blocking.add(a.batchId);
-      }
-    }
-    if (blocking.size > 0) {
+    if (held.length > 0) {
+      const count = held.reduce((sum, h) => sum + h.machines, 0);
       warnings.push(
-        `Suitable machines are held by ${[...blocking].sort().join(", ")} before the deadline; ` +
-          "moving them to this order would delay those orders.",
+        `${count} suitable machine${count === 1 ? " is" : "s are"} in the plan${held.length === 1 ? "" : "s"} for ` +
+          `${held.map((h) => h.batchId).join(", ")}. They can be added to this order once ` +
+          `${held.length === 1 ? "that batch is" : "those batches are"} completed.`,
       );
     }
   }
@@ -267,6 +272,8 @@ export function recommendAllocation(inputs: PlanInputs, ctx: PlanContext): Alloc
   return {
     totalMachines: ctx.machines.filter((m) => m.active).length,
     eligibleCount: eligible.length,
+    freeCount: free.length,
+    held,
     recommended,
     alternatives,
     shortfallMeters,

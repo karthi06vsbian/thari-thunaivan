@@ -12,6 +12,7 @@ import {
   ScanLine,
   Truck,
   Users,
+  Warehouse,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ const ICONS = {
   transport: Truck,
   electricity: Zap,
   orders: Package,
+  stock: Warehouse,
   workers: Users,
   whatsapp: MessageCircle,
 };

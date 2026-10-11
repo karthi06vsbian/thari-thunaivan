@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Kpi, PageHeader } from "@/components/kpi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ACCESS, requireRole } from "@/lib/auth/session";
-import { getAuditLogs, getBatches, getDailyStats, getMachines, getMaterials, getOrders, getShiftSettings } from "@/lib/data";
+import { getAuditLogs, getBatches, getDailyStats, getMachines, getMaterials, getOrders, getShiftSettings, getStockOrders } from "@/lib/data";
 import { formatDate, todayIso } from "@/lib/dates";
 import { formatINR, formatNumber } from "@/lib/money";
 import { db } from "@/lib/firebase/admin";
@@ -38,7 +38,7 @@ export default async function OverviewPage({
   const today = todayIso();
   const seesAll = ACCESS.planning.includes(user.role);
   // Everything is fetched together so the page waits for the slowest read, not the sum of them.
-  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries, reviews, orders, shifts, materials] = await Promise.all([
+  const [machines, stats, batches, alerts, audit, qualityChecks, enquiries, reviews, orders, shifts, materials, stockOrders] = await Promise.all([
     getMachines(),
     getDailyStats(today),
     getBatches(),
@@ -56,6 +56,7 @@ export default async function OverviewPage({
     seesAll ? getOrders() : null,
     getShiftSettings(),
     seesAll ? getMaterials() : null,
+    seesAll ? getStockOrders() : null,
   ]);
   const counts = countStatuses(machines);
   const activeBatches = batches.filter((b) => b.status === "in_progress" || b.status === "planned");
@@ -92,7 +93,9 @@ export default async function OverviewPage({
       </div>
 
       {orders && <DeadlineAlerts alerts={deadlineAlerts(orders, batches, machines, shifts, today, dueWithin)} within={dueWithin} />}
-      {orders && materials && <StockBox advice={stockAdvice(materials, orders, batches)} />}
+      {orders && materials && stockOrders && (
+        <StockBox advice={stockAdvice(materials, orders, batches, stockOrders)} stockOrders={stockOrders} today={today} linkToOrders />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

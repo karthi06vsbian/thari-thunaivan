@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
+import { getBatches, getMaterials, getOrders } from "@/lib/data";
 import { addDays, todayIso } from "@/lib/dates";
 import { razorpayConfigured } from "@/lib/payments/razorpay";
 import { SITE } from "@/lib/site";
+import { maxOrderMeters } from "@/lib/stock";
 import { OrderForm } from "../order-form";
 import { PortalShell } from "../portal-shell";
 
@@ -13,6 +15,7 @@ export const metadata: Metadata = { title: `New order – ${SITE.name}` };
 
 export default async function NewOrderPage() {
   const user = await requireRole(["client"]);
+  const [materials, orders, batches] = await Promise.all([getMaterials(), getOrders(), getBatches()]);
   return (
     <PortalShell user={user}>
       <div>
@@ -28,7 +31,10 @@ export default async function NewOrderPage() {
         </CardHeader>
         <CardContent>
           <OrderForm
-            fabrics={SITE.fabrics.map(({ name, value, ratePerMeter, image, detail }) => ({ name, value, ratePerMeter, image, detail }))}
+            fabrics={SITE.fabrics.map(({ name, value, ratePerMeter, image, detail }) => ({
+              name, value, ratePerMeter, image, detail,
+              maxMeters: maxOrderMeters(value, materials, orders, batches),
+            }))}
             today={todayIso()}
             minDate={addDays(todayIso(), 1)}
             defaults={{ company: user.company ?? user.name, phone: user.phone ?? "", address: user.address ?? "" }}

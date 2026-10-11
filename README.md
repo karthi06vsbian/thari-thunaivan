@@ -153,7 +153,8 @@ npm install
 ### 2. Start Local Development
 
 ```bash
-# Option A: Run with local Firebase Emulators (No cloud account required)
+# Option A: Run fully on this computer: local database and local logins (Firebase Emulators).
+# No cloud account, no daily usage limit. Demo data is created on the first run and kept in .emulator-data.
 npm run dev:local
 
 # Option B: Run with cloud Firebase project (.env.local configured)
@@ -170,9 +171,11 @@ Use the standard demo password **`password123`** for seeded test accounts:
 
 | Email / ID | Role | Permissions |
 |---|---|---|
-| `owner@textileflow.test` | **Owner** | Full mill access, financial reports, power tariffs, and WhatsApp broadcasts |
-| `production@textileflow.test` | **Production** | Shift output logs, machine maintenance, and fabric quality checks |
-| `accounts@textileflow.test` | **Accounts** | Daily electricity readings, power costing, and payment verification |
+| `owner@tharithunaivan.com` | **Owner** | Full mill access, financial reports, power tariffs, and WhatsApp broadcasts |
+| `staff@tharithunaivan.com` | **Supervisor** | Shift output logs and fabric quality checks |
+| `accounts@tharithunaivan.com` | **Accounts** | Daily electricity readings, power costing, and payment verification |
+
+On the staff sign-in page, the **Owner** and **Supervisor** buttons fill these in for you.
 
 For client testing, visit `/login` and enter any mobile number (e.g., `+91 91790 4348506`) to sign in via WhatsApp OTP or click **Demo client**.
 
