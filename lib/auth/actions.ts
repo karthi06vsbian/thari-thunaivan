@@ -58,6 +58,12 @@ export async function createSession(
   } catch (err) {
     console.error("createSession error:", err);
     const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("default credentials")) {
+      return {
+        ok: false,
+        error: "Firebase service credentials missing on Vercel. Please add FIREBASE_SERVICE_ACCOUNT_KEY in Vercel Environment Variables and redeploy.",
+      };
+    }
     return { ok: false, error: `Could not start a session (${msg}). Try signing in again.` };
   }
 }

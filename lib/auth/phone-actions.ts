@@ -72,6 +72,13 @@ export async function requestLoginCode(rawPhone: string): Promise<CodeResult> {
     return { ok: true };
   } catch (err) {
     console.error("requestLoginCode error:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("default credentials")) {
+      return {
+        ok: false,
+        error: "Firebase service credentials missing on Vercel. Please add FIREBASE_SERVICE_ACCOUNT_KEY in Vercel Environment Variables and redeploy.",
+      };
+    }
     return { ok: false, error: "Could not send the code. Try again." };
   }
 }
@@ -112,6 +119,13 @@ export async function demoClientLogin(): Promise<TokenResult> {
     return { ok: true, token: await tokenForPhone(client.phone) };
   } catch (err) {
     console.error("demoClientLogin error:", err);
-    return { ok: false, error: err instanceof Error ? err.message : "Demo login failed. Try again." };
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("default credentials")) {
+      return {
+        ok: false,
+        error: "Firebase service credentials missing on Vercel. Please add FIREBASE_SERVICE_ACCOUNT_KEY in Vercel Environment Variables and redeploy.",
+      };
+    }
+    return { ok: false, error: msg || "Demo login failed. Try again." };
   }
 }

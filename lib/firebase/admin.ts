@@ -12,32 +12,58 @@ export function parseServiceAccountKey(raw: string | undefined): Record<string, 
   if ((str.startsWith("'") && str.endsWith("'")) || (str.startsWith('"') && str.endsWith('"'))) {
     str = str.slice(1, -1).trim();
   }
-  try {
-    const obj = JSON.parse(str);
-    if (typeof obj.private_key === "string" && obj.private_key.includes("\\n")) {
-      obj.private_key = obj.private_key.replace(/\\n/g, "\n");
-    }
-    return obj;
-  } catch {
+  // Support Base64 encoded service account key
+  if (!str.startsWith("{")) {
     try {
-      const obj = JSON.parse(str.replace(/\\n/g, "\n"));
-      if (typeof obj.private_key === "string" && obj.private_key.includes("\\n")) {
-        obj.private_key = obj.private_key.replace(/\\n/g, "\n");
-      }
-      return obj;
-    } catch (err) {
-      console.error("FIREBASE_SERVICE_ACCOUNT_KEY parse error:", err);
-      return undefined;
+      const decoded = Buffer.from(str, "base64").toString("utf-8").trim();
+      if (decoded.startsWith("{")) str = decoded;
+    } catch {
+      // not base64
     }
   }
+  const attempts = [
+    str,
+    str.replace(/\\n/g, "\n"),
+    str.replace(/\\"/g, '"'),
+  ];
+  for (const candidate of attempts) {
+    try {
+      const obj = JSON.parse(candidate);
+      if (obj && typeof obj === "object") {
+        if (typeof obj.private_key === "string" && obj.private_key.includes("\\n")) {
+          obj.private_key = obj.private_key.replace(/\\n/g, "\n");
+        }
+        return obj as Record<string, unknown>;
+      }
+    } catch {
+      // continue
+    }
+  }
+  console.error("FIREBASE_SERVICE_ACCOUNT_KEY parse error: could not parse JSON.");
+  return undefined;
+}
+
+export function getCredentials(): Record<string, unknown> | undefined {
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL ?? process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY ?? process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+  if (clientEmail && privateKey) {
+    return {
+      projectId,
+      clientEmail,
+      privateKey: privateKey.replace(/\\n/g, "\n"),
+    };
+  }
+  const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY ?? process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+  return parseServiceAccountKey(rawKey);
 }
 
 function app(): App {
   const existing = getApps()[0];
   if (existing) return existing;
-  const parsedKey = parseServiceAccountKey(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-  return initializeApp(parsedKey ? { credential: cert(parsedKey), projectId } : { projectId });
+  const creds = getCredentials();
+  return initializeApp(creds ? { credential: cert(creds), projectId } : { projectId });
 }
+
 
 let firestore: Firestore | undefined;
 
