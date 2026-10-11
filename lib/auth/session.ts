@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { adminAuth, db } from "@/lib/firebase/admin";
 import type { AppUser, Role } from "@/lib/types";
 
+export const ROLES: Role[] = ["owner", "production", "accounts", "transport", "client"];
+
 export const SESSION_COOKIE = "__session";
 export const SESSION_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000;
 
@@ -23,6 +25,8 @@ export const getSessionUser = cache(async (): Promise<AppUser | null> => {
     const snap = await db().collection("users").doc(decoded.uid).get();
     if (!snap.exists) return null;
     const user = { uid: decoded.uid, ...(snap.data() as Omit<AppUser, "uid">) };
+    // An account left over from a role that no longer exists (the old manager login) is signed out.
+    if (!ROLES.includes(user.role)) return null;
     profiles.set(decoded.uid, { user, at: Date.now() });
     return user;
   } catch {
@@ -50,15 +54,15 @@ export async function assertRole(roles: Role[]): Promise<AppUser> {
 type Area = "overview" | "machines" | "planning" | "productionLogs" | "quality" | "transport" | "electricity" | "orders" | "stock" | "workers" | "whatsapp";
 
 export const ACCESS: Record<Area, Role[]> = {
-  overview: ["owner", "manager", "production", "accounts", "transport"],
-  machines: ["owner", "manager"],
-  planning: ["owner", "manager"],
-  productionLogs: ["owner", "manager", "production"],
-  quality: ["owner", "manager", "production"],
-  transport: ["owner", "manager", "transport"],
-  electricity: ["owner", "manager", "accounts"],
-  orders: ["owner", "manager", "accounts", "transport"],
-  stock: ["owner", "manager"],
-  workers: ["owner", "manager"],
+  overview: ["owner", "production", "accounts", "transport"],
+  machines: ["owner"],
+  planning: ["owner"],
+  productionLogs: ["owner", "production"],
+  quality: ["owner", "production"],
+  transport: ["owner", "transport"],
+  electricity: ["owner", "accounts"],
+  orders: ["owner", "accounts", "transport"],
+  stock: ["owner"],
+  workers: ["owner"],
   whatsapp: ["owner"],
 };

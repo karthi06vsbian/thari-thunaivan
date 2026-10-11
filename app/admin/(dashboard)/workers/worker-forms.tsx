@@ -103,7 +103,7 @@ function Line({ label, value, strong }: { label: string; value: string; strong?:
   );
 }
 
-/** Everything a manager does for one worker: the month's hours and bonus, payment, increments and details. */
+/** Everything the owner does for one worker: the month's hours and bonus, payment, increments and details. */
 export function ManageWorker({ row, month, rules }: { row: WorkerRow; month: string; rules: PayRules }) {
   const { worker, pay, slip, trips } = row;
   const { pending, act } = useAct();

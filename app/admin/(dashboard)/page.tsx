@@ -44,9 +44,9 @@ export default async function OverviewPage({
     getBatches(),
     buildAlerts(today),
     getAuditLogs(8),
-    // Owner and manager see every quality check as soon as it is saved.
+    // The owner sees every quality check as soon as it is saved.
     seesAll ? getRecentChecks() : null,
-    // Customer contact details: owner and manager only.
+    // Customer contact details: owner only.
     seesAll
       ? db().collection("enquiries").orderBy("at", "desc").limit(5).get().then((snap) =>
           snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Enquiry),

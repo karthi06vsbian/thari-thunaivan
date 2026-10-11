@@ -3,14 +3,14 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { adminAuth, db } from "@/lib/firebase/admin";
-import { getSessionUser, SESSION_COOKIE, SESSION_MAX_AGE_MS } from "@/lib/auth/session";
+import { getSessionUser, ROLES, SESSION_COOKIE, SESSION_MAX_AGE_MS } from "@/lib/auth/session";
 import type { Role, StaffRole } from "@/lib/types";
 
 type SessionResult = { ok: true; home: string } | { ok: false; error: string };
 
 /**
  * `displayName` is only used when a brand-new client registers with email and password.
- * `expectedRole` comes from the admin login, where the person picks Owner, Manager or
+ * `expectedRole` comes from the admin login, where the person picks Owner or
  * Supervisor: the ID must really hold that role or no session is started.
  */
 export async function createSession(
@@ -24,6 +24,9 @@ export async function createSession(
     const snap = await ref.get();
     let role = snap.exists ? (snap.data()!.role as Role) : null;
 
+    if (role && !ROLES.includes(role)) {
+      return { ok: false, error: "This login is no longer in use. Ask the owner for access." };
+    }
     if (expectedRole && role !== expectedRole) {
       return { ok: false, error: "This ID does not have that access. Pick the icon that matches your account and try again." };
     }

@@ -48,7 +48,7 @@ Its automated loom allocation engine helps mill managers determine the exact num
 | 🚚 **Live Transport & Transit Tracking** | Interactive Leaflet 3D transit map tracking dispatches and delivery milestones across Tamil Nadu textile corridors (Erode, Tiruppur, Chennai, Salem). |
 | 📱 **6-Stage Client Order Portal** | Self-service customer tracking portal showing yarn prep, loom weaving progress, quality checks, roll packaging, and transit dispatch. |
 | 💬 **Meta WhatsApp Cloud AI Bot** | Bi-directional conversational bot on `+91 63832 63198` for instant OTP login, automated breakdown alerts, daily owner summaries, and live `STATUS` tracking. |
-| 👥 **Role-Based Access Control (RBAC)** | Strict role segregation for **Owner**, **Manager**, **Production Head**, **Accounts**, and **Client** with secure HTTP-only session cookies. |
+| 👥 **Role-Based Access Control (RBAC)** | Strict role segregation for **Owner**, **Production Head**, **Accounts**, and **Client** with secure HTTP-only session cookies. |
 
 ---
 
@@ -79,8 +79,8 @@ Its automated loom allocation engine helps mill managers determine the exact num
 | `/admin/login` | Staff single sign-on with role authentication and quick demo switcher | Staff |
 | `/admin` | Operations overview: plant KPIs, today's output, power spend, and alerts | Staff |
 | `/admin/machines` | 50-loom registry, running states, and maintenance scheduling | Staff |
-| `/admin/planning` | Interactive Gantt chart schedule, loom capacity calculator, and plan commits | Manager / Owner |
-| `/admin/orders` | Customer order approval, batch assignment, and pricing negotiation | Manager / Owner |
+| `/admin/planning` | Interactive Gantt chart schedule, loom capacity calculator, and plan commits | Owner |
+| `/admin/orders` | Customer order approval, batch assignment, and pricing negotiation | Owner |
 | `/admin/production-logs` | Shift A & B meter output, pick counters, running hours, and downtime reasons | Production |
 | `/admin/quality` | 3-stage inspection logs, bundle grading, and printable batch QR code labels | Production |
 | `/admin/quality/[bundleId]` | Mobile QR inspection scanner page for recording defect measurements | Production |
@@ -171,7 +171,6 @@ Use the standard demo password **`password123`** for seeded test accounts:
 | Email / ID | Role | Permissions |
 |---|---|---|
 | `owner@textileflow.test` | **Owner** | Full mill access, financial reports, power tariffs, and WhatsApp broadcasts |
-| `manager@textileflow.test` | **Manager** | Order approvals, production planning, and loom scheduling |
 | `production@textileflow.test` | **Production** | Shift output logs, machine maintenance, and fabric quality checks |
 | `accounts@textileflow.test` | **Accounts** | Daily electricity readings, power costing, and payment verification |
 

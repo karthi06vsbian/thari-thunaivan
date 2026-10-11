@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
-import { Crown, HardHat, ShieldCheck, UserCog } from "lucide-react";
+import { Crown, HardHat, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 // Who is signing in. The ID must really hold the chosen access, or the sign-in is refused.
 const ACCESS_LEVELS: { role: StaffRole; label: string; icon: typeof Crown; opens: string; demoId: string }[] = [
   { role: "owner", label: "Owner", icon: Crown, opens: "Full dashboard: every page, costs and WhatsApp", demoId: "owner@tharithunaivan.com" },
-  { role: "manager", label: "Manager", icon: UserCog, opens: "Machines, planning, orders, quality and electricity", demoId: "manager@tharithunaivan.com" },
   { role: "production", label: "Supervisor", icon: HardHat, opens: "Production logs and quality check", demoId: "staff@tharithunaivan.com" },
 ];
 
@@ -30,7 +29,7 @@ const DEMO_FILL = process.env.NEXT_PUBLIC_DEMO_LOGIN !== "off";
 const DEMO_PASSWORD = "password123";
 
 /**
- * One sign-in for all mill staff. The account decides what opens: the owner, manager
+ * One sign-in for all mill staff. The account decides what opens: the owner
  * and supervisor each land on the dashboard with their own level of access.
  */
 export default function AdminLoginPage() {
@@ -94,9 +93,6 @@ export default function AdminLoginPage() {
           <div className="grid gap-4 border-t border-white/10 pt-8 text-sm text-white/70">
             <p className="flex items-center gap-2">
               <Crown className="size-4" /> Owner: Full dashboard and costs
-            </p>
-            <p className="flex items-center gap-2">
-              <UserCog className="size-4" /> Manager: Planning and orders
             </p>
             <p className="flex items-center gap-2">
               <HardHat className="size-4" /> Supervisor: Production logs

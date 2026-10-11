@@ -27,7 +27,7 @@ export async function getRecentBundles(limit = 200): Promise<Bundle[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Bundle);
 }
 
-/** Latest completed checks, newest first, for the owner and manager. */
+/** Latest completed checks, newest first, for the owner. */
 export async function getRecentChecks(limit = 6): Promise<Bundle[]> {
   const snap = await db().collection("bundles").orderBy("checkedAt", "desc").limit(limit).get();
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Bundle).filter((b) => b.checkedAt);

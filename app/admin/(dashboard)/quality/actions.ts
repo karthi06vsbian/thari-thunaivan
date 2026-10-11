@@ -52,7 +52,7 @@ const qcSchema = z.object({
   remarks: z.string().trim().max(500),
 });
 
-/** Saves a bundle's quality check and tells the owner; the manager sees it on the dashboard. */
+/** Saves a bundle's quality check and tells the owner, who also sees it on the dashboard. */
 export async function saveQualityCheck(input: z.infer<typeof qcSchema>) {
   return run(async () => {
     const user = await assertRole(ACCESS.quality);
@@ -109,6 +109,6 @@ export async function saveQualityCheck(input: z.infer<typeof qcSchema>) {
       "quality-check",
     );
     revalidatePath("/admin", "layout");
-    return { message: `${bundle.bundleNo} saved as ${QC_LABEL[q.result]} with ${pct.overall}% quality. Owner and manager have been updated.` };
+    return { message: `${bundle.bundleNo} saved as ${QC_LABEL[q.result]} with ${pct.overall}% quality. The owner has been updated.` };
   });
 }

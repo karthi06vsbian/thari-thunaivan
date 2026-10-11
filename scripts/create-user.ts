@@ -9,7 +9,7 @@
 import { adminAuth, db, projectId } from "@/lib/firebase/admin";
 import type { StaffRole as Role } from "@/lib/types";
 
-const ROLES: Role[] = ["owner", "manager", "production", "accounts"];
+const ROLES: Role[] = ["owner", "production", "accounts"];
 
 function arg(name: string): string | undefined {
   return process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);

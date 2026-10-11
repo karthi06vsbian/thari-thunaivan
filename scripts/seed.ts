@@ -67,7 +67,6 @@ const shiftSettings: ShiftSettings = {
 
 const USERS: { uid: string; name: string; role: Role; phone?: string }[] = [
   { uid: "owner", name: "Karthikeyan (Owner)", role: "owner", phone: "919800000001" },
-  { uid: "manager", name: "Production Manager", role: "manager" },
   { uid: "production", name: "Shift Supervisor", role: "production" },
   { uid: "accounts", name: "Accounts", role: "accounts" },
 ];
@@ -209,7 +208,7 @@ async function main() {
     writes.push((b) =>
       b.set(
         db().collection("allocationPlans").doc(batch.planId!),
-        planDocFrom(result, plan, inputs, batch, "Production Manager", applied ? "applied" : "draft"),
+        planDocFrom(result, plan, inputs, batch, "Karthikeyan (Owner)", applied ? "applied" : "draft"),
       ),
     );
     console.log(`${o.orderNo}: ${plan.machinesNeeded} machines, finish ${plan.estimatedFinishDate}${plan.feasible ? "" : " (misses deadline)"}`);
